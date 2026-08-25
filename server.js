@@ -1,1436 +1,589 @@
-const express = require('express');
-const session = require('express-session');
-const bcrypt = require('bcryptjs');
-const Database = require('better-sqlite3');
-const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
-const crypto = require('crypto');
+const express = require("express");
+const session = require("express-session");
+const fs = require("fs");
+const path = require("path");
 
 const app = express();
+const PORT = process.env.PORT || 3000;
 
-app.set('trust proxy', true);
+// =====================================================
+// ENVIRONMENT VARIABLES
+// =====================================================
 
-/* =========================
-   DATABASE
-========================= */
+const {
+    DISCORD_CLIENT_ID,
+    DISCORD_CLIENT_SECRET,
+    DISCORD_REDIRECT_URI,
+    SESSION_SECRET
+} = process.env;
 
-const dbPath = path.join(__dirname, 'cia.db');
-const db = new Database(dbPath);
-
-db.pragma('journal_mode = WAL');
-
-/* =========================
-   IP DETECTION
-========================= */
-
-function getClientIP(req) {
-    const forwarded = req.headers['x-forwarded-for'];
-
-    const ip =
-        req.headers['cf-connecting-ip'] ||
-        (forwarded ? forwarded.split(',')[0].trim() : null) ||
-        req.socket.remoteAddress ||
-        'unknown';
-
-    return String(ip)
-        .trim()
-        .replace('::ffff:', '');
+if (
+    !DISCORD_CLIENT_ID ||
+    !DISCORD_CLIENT_SECRET ||
+    !DISCORD_REDIRECT_URI ||
+    !SESSION_SECRET
+) {
+    console.error("Missing required environment variables.");
+    process.exit(1);
 }
 
-app.use((req, res, next) => {
-    req.visitorIP = getClientIP(req);
-    next();
-});
+// Render is behind a proxy
+app.set("trust proxy", 1);
 
-/* =========================
-   DIRECTORIES
-========================= */
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-const uploads = path.join(__dirname, 'uploads');
-
-fs.mkdirSync(uploads, {
-    recursive: true
-});
-
-/* =========================
-   MIDDLEWARE
-========================= */
-
-app.use(express.json({
-    limit: '2mb'
-}));
-
-app.use(express.urlencoded({
-    extended: true
-}));
+// =====================================================
+// SESSION
+// =====================================================
 
 app.use(
     session({
-        secret:
-            process.env.SESSION_SECRET ||
-            'cia-rp-change-this-secret-2026',
-
+        secret: SESSION_SECRET,
         resave: false,
-
         saveUninitialized: false,
-
         cookie: {
             httpOnly: true,
-            sameSite: 'lax',
-            secure: process.env.NODE_ENV === 'production',
-            maxAge: 1000 * 60 * 60 * 24 * 30
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "lax",
+            maxAge: 24 * 60 * 60 * 1000
         }
     })
 );
 
-/* =========================
-   COOKIE PARSER
-========================= */
+// =====================================================
+// LOG DIRECTORIES
+// =====================================================
 
-app.use((req, res, next) => {
-    const raw = req.headers.cookie || '';
+const logsDir = path.join(__dirname, "logs");
 
-    req.cookies = {};
+const visitLogsFile = path.join(
+    logsDir,
+    "visit-logs.json"
+);
 
-    raw.split(';').forEach((part) => {
-        const index = part.indexOf('=');
+const loginLogsFile = path.join(
+    logsDir,
+    "login-logs.json"
+);
 
-        if (index > 0) {
-            const key = part
-                .slice(0, index)
-                .trim();
-
-            const value = part
-                .slice(index + 1)
-                .trim();
-
-            try {
-                req.cookies[key] =
-                    decodeURIComponent(value);
-            } catch {
-                req.cookies[key] = value;
-            }
-        }
+if (!fs.existsSync(logsDir)) {
+    fs.mkdirSync(logsDir, {
+        recursive: true
     });
-
-    next();
-});
-
-/* =========================
-   STATIC FILES
-========================= */
-
-app.use(
-    express.static(
-        path.join(__dirname, 'public')
-    )
-);
-
-/* =========================
-   DATABASE TABLES
-========================= */
-
-db.exec(`
-CREATE TABLE IF NOT EXISTS users(
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    username TEXT UNIQUE NOT NULL,
-    password TEXT NOT NULL,
-    rank TEXT NOT NULL,
-    unit TEXT NOT NULL,
-    clearance TEXT NOT NULL,
-    in_game_name TEXT,
-    created_at TEXT DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE IF NOT EXISTS applications(
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    age INTEGER NOT NULL,
-    unit TEXT NOT NULL,
-    experience TEXT NOT NULL,
-    why TEXT NOT NULL,
-    status TEXT DEFAULT 'PENDING',
-    dashboard_token TEXT UNIQUE NOT NULL,
-    linked_user INTEGER,
-    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-    updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
-
-    FOREIGN KEY(linked_user)
-        REFERENCES users(id)
-);
-
-CREATE TABLE IF NOT EXISTS messages(
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    sender_id INTEGER,
-    sender_label TEXT NOT NULL,
-    recipient_user INTEGER,
-    recipient_application INTEGER,
-    subject TEXT NOT NULL,
-    body TEXT NOT NULL,
-    type TEXT DEFAULT 'MESSAGE',
-    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-    read INTEGER DEFAULT 0
-);
-
-CREATE TABLE IF NOT EXISTS reports(
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    title TEXT NOT NULL,
-    author INTEGER NOT NULL,
-    classification TEXT NOT NULL,
-    file TEXT NOT NULL,
-    created_at TEXT DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE IF NOT EXISTS audit(
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    actor INTEGER,
-    actor_label TEXT,
-    action TEXT NOT NULL,
-    ip TEXT,
-    details TEXT,
-    created_at TEXT DEFAULT CURRENT_TIMESTAMP
-);
-`);
-
-/* =========================
-   DATABASE MIGRATION
-========================= */
-
-try {
-    db.prepare(
-        'ALTER TABLE users ADD COLUMN in_game_name TEXT'
-    ).run();
-} catch (error) {
-    // Column already exists.
 }
 
-try {
-    db.prepare(
-        'UPDATE users SET in_game_name = COALESCE(in_game_name, username) WHERE in_game_name IS NULL'
-    ).run();
-} catch (error) {
-    // Ignore migration errors.
+if (!fs.existsSync(visitLogsFile)) {
+    fs.writeFileSync(
+        visitLogsFile,
+        "[]",
+        "utf8"
+    );
 }
 
-/* =========================
-   RANKS / CLEARANCE
-========================= */
+if (!fs.existsSync(loginLogsFile)) {
+    fs.writeFileSync(
+        loginLogsFile,
+        "[]",
+        "utf8"
+    );
+}
 
-const RANKS = [
-    'AGENT',
-    'AGENT OFFICER',
-    'COMMAND OF CIA'
-];
+// =====================================================
+// GET CLIENT IP
+// =====================================================
 
-const ADMIN = [
-    'AGENT OFFICER',
-    'COMMAND OF CIA'
-];
+function getClientIP(req) {
+    const forwarded =
+        req.headers["x-forwarded-for"];
 
-const COMMAND = [
-    'COMMAND OF CIA'
-];
+    if (forwarded) {
+        return forwarded
+            .split(",")[0]
+            .trim();
+    }
 
-const clearanceRank = {
-    RESTRICTED: 1,
-    CONFIDENTIAL: 2,
-    SECRET: 3,
-    'TOP SECRET': 4,
-    OMEGA: 5
-};
+    return (
+        req.headers["x-real-ip"] ||
+        req.ip ||
+        req.socket?.remoteAddress ||
+        "unknown"
+    );
+}
 
-/* =========================
-   FILE UPLOAD
-========================= */
+// =====================================================
+// SAVE VISITOR LOG
+// =====================================================
 
-const upload = multer({
-    dest: uploads,
+function saveVisitLog(req) {
+    let logs = [];
 
-    limits: {
-        fileSize: 20 * 1024 * 1024
-    },
-
-    fileFilter: (req, file, cb) => {
-        cb(
-            null,
-            file.mimetype === 'application/pdf'
+    try {
+        logs = JSON.parse(
+            fs.readFileSync(
+                visitLogsFile,
+                "utf8"
+            )
         );
-    }
-});
 
-/* =========================
-   HELPERS
-========================= */
-
-function ip(req) {
-    return getClientIP(req);
-}
-
-function safeUser(user) {
-    if (!user) {
-        return null;
+        if (!Array.isArray(logs)) {
+            logs = [];
+        }
+    } catch {
+        logs = [];
     }
 
-    const copy = {
-        ...user
+    const entry = {
+        type: "site_visit",
+
+        ip: getClientIP(req),
+
+        timestamp:
+            new Date().toISOString(),
+
+        userAgent:
+            req.headers["user-agent"] ||
+            "unknown",
+
+        language:
+            req.headers["accept-language"] ||
+            "unknown",
+
+        path:
+            req.originalUrl || "/"
     };
 
-    delete copy.password;
+    logs.push(entry);
 
-    return copy;
-}
+    // Keep latest 10,000 visits
+    if (logs.length > 10000) {
+        logs = logs.slice(-10000);
+    }
 
-function cleanUsername(name, id) {
-    const base = String(name)
-        .toLowerCase()
-        .replace(/[^a-z0-9_-]/g, '')
-        .slice(0, 18) || 'agent';
+    fs.writeFileSync(
+        visitLogsFile,
+        JSON.stringify(
+            logs,
+            null,
+            2
+        ),
+        "utf8"
+    );
 
-    return (
-        base +
-        '_' +
-        String(id).padStart(3, '0')
+    console.log(
+        `[SITE VISIT] ${entry.ip} | ${entry.timestamp}`
     );
 }
 
-function randomPassword() {
-    return (
-        crypto.randomBytes(6).toString('base64url') +
-        '!9'
+// =====================================================
+// SAVE DISCORD LOGIN LOG
+// =====================================================
+
+function saveLoginLog(user, req) {
+    let logs = [];
+
+    try {
+        logs = JSON.parse(
+            fs.readFileSync(
+                loginLogsFile,
+                "utf8"
+            )
+        );
+
+        if (!Array.isArray(logs)) {
+            logs = [];
+        }
+    } catch {
+        logs = [];
+    }
+
+    const entry = {
+        type: "discord_login",
+
+        discord: {
+            id: user.id,
+            username: user.username,
+            globalName:
+                user.global_name || null,
+            email:
+                user.email || null,
+            avatar:
+                user.avatar || null
+        },
+
+        ip: getClientIP(req),
+
+        timestamp:
+            new Date().toISOString(),
+
+        userAgent:
+            req.headers["user-agent"] ||
+            "unknown",
+
+        language:
+            req.headers["accept-language"] ||
+            "unknown"
+    };
+
+    logs.push(entry);
+
+    // Keep latest 10,000 logins
+    if (logs.length > 10000) {
+        logs = logs.slice(-10000);
+    }
+
+    fs.writeFileSync(
+        loginLogsFile,
+        JSON.stringify(
+            logs,
+            null,
+            2
+        ),
+        "utf8"
+    );
+
+    console.log(
+        `[DISCORD LOGIN] ${user.username} | ${user.id} | ${entry.ip}`
     );
 }
 
-function canView(user, classification) {
-    return (
-        (clearanceRank[user.clearance] || 0) >=
-        (clearanceRank[classification] || 99)
-    );
-}
+// =====================================================
+// AUTH MIDDLEWARE
+// =====================================================
 
-/* =========================
-   AUDIT
-========================= */
-
-function audit(req, action, details = '') {
-    const user = req.session?.user;
-
-    db.prepare(`
-        INSERT INTO audit(
-            actor,
-            actor_label,
-            action,
-            ip,
-            details
-        )
-        VALUES (?, ?, ?, ?, ?)
-    `).run(
-        user?.id || null,
-        user?.username ||
-            user?.rank ||
-            'PUBLIC',
-        action,
-        ip(req),
-        details
-    );
-}
-
-/* =========================
-   AUTH MIDDLEWARE
-========================= */
-
-function auth(req, res, next) {
+function requireDiscordLogin(
+    req,
+    res,
+    next
+) {
     if (!req.session.user) {
-        return res
-            .status(401)
-            .json({
-                error: 'AUTH_REQUIRED'
-            });
+        return res.redirect(
+            "/auth/discord"
+        );
     }
 
     next();
 }
 
-function admin(req, res, next) {
-    if (
-        !req.session.user ||
-        !ADMIN.includes(req.session.user.rank)
-    ) {
-        return res
-            .status(403)
-            .json({
-                error: 'FORBIDDEN'
-            });
+// =====================================================
+// FIRST VISIT
+// =====================================================
+
+app.get("/", (req, res, next) => {
+
+    // Already logged in
+    if (req.session.user) {
+        return next();
     }
 
-    next();
-}
+    // Record IP immediately
+    saveVisitLog(req);
 
-function command(req, res, next) {
-    if (
-        !req.session.user ||
-        !COMMAND.includes(req.session.user.rank)
-    ) {
-        return res
-            .status(403)
-            .json({
-                error: 'COMMAND_ONLY'
-            });
-    }
-
-    next();
-}
-
-/* =========================
-   COMMAND ACCOUNT
-========================= */
-
-function ensureCommand() {
-    const existing = db
-        .prepare(
-            'SELECT * FROM users WHERE username=?'
-        )
-        .get('code_alpha');
-
-    if (!existing) {
-        db.prepare(`
-            INSERT INTO users(
-                username,
-                password,
-                rank,
-                unit,
-                clearance
-            )
-            VALUES (?, ?, ?, ?, ?)
-        `).run(
-            'code_alpha',
-            bcrypt.hashSync(
-                'cia command91',
-                12
-            ),
-            'COMMAND OF CIA',
-            'CIA COMMAND',
-            'OMEGA'
-        );
-    }
-}
-
-ensureCommand();
-
-/* =========================
-   APPLICATION SYSTEM
-========================= */
-
-app.post('/api/applications', (req, res) => {
-    try {
-        const {
-            name,
-            age,
-            unit,
-            experience,
-            why
-        } = req.body;
-
-        if (
-            !name ||
-            !age ||
-            !unit ||
-            !experience ||
-            !why
-        ) {
-            return res
-                .status(400)
-                .json({
-                    error: 'MISSING_FIELDS'
-                });
-        }
-
-        const token =
-            crypto.randomBytes(32).toString('hex');
-
-        const result = db.prepare(`
-            INSERT INTO applications(
-                name,
-                age,
-                unit,
-                experience,
-                why,
-                dashboard_token
-            )
-            VALUES (?, ?, ?, ?, ?, ?)
-        `).run(
-            String(name).trim(),
-            Number(age),
-            unit,
-            String(experience).trim(),
-            String(why).trim(),
-            token
-        );
-
-        audit(
-            req,
-            'APPLICATION_SUBMITTED',
-            `application=${result.lastInsertRowid}`
-        );
-
-        res.cookie(
-            'cia_application',
-            token,
-            {
-                httpOnly: true,
-                sameSite: 'lax',
-                secure:
-                    process.env.NODE_ENV ===
-                    'production',
-                maxAge:
-                    1000 *
-                    60 *
-                    60 *
-                    24 *
-                    365
-            }
-        );
-
-        res.json({
-            ok: true,
-            id: result.lastInsertRowid,
-            token
-        });
-
-    } catch (error) {
-        console.error(error);
-
-        res.status(500).json({
-            error: 'SERVER_ERROR'
-        });
-    }
+    // Send visitor to Discord
+    return res.redirect(
+        "/auth/discord"
+    );
 });
 
-/* =========================
-   APPLICATION DASHBOARD
-========================= */
+// =====================================================
+// DISCORD OAUTH
+// =====================================================
 
-app.get('/api/application/me', (req, res) => {
-    try {
-        const token =
-            req.cookies?.cia_application ||
-            req.headers['x-application-token'] ||
-            req.query.token;
+app.get(
+    "/auth/discord",
+    (req, res) => {
 
-        if (!token) {
-            return res.json({
-                application: null
+        const params =
+            new URLSearchParams({
+                client_id:
+                    DISCORD_CLIENT_ID,
+
+                response_type:
+                    "code",
+
+                redirect_uri:
+                    DISCORD_REDIRECT_URI,
+
+                scope:
+                    "identify email"
             });
-        }
 
-        const application = db
-            .prepare(`
-                SELECT
-                    id,
-                    name,
-                    age,
-                    unit,
-                    experience,
-                    why,
-                    status,
-                    linked_user,
-                    created_at,
-                    updated_at
-                FROM applications
-                WHERE dashboard_token=?
-            `)
-            .get(token);
+        const url =
+            "https://discord.com/oauth2/authorize?" +
+            params.toString();
 
-        if (!application) {
-            return res.json({
-                application: null
-            });
-        }
+        res.redirect(url);
+    }
+);
 
-        const messages = db
-            .prepare(`
-                SELECT
-                    id,
-                    sender_label,
-                    subject,
-                    body,
-                    type,
-                    created_at,
-                    read
-                FROM messages
-                WHERE recipient_application=?
-                ORDER BY id DESC
-            `)
-            .all(application.id);
+// =====================================================
+// DISCORD CALLBACK
+// =====================================================
 
-        let credentials = null;
+app.get(
+    "/auth/discord/callback",
+    async (req, res) => {
 
-        if (application.linked_user) {
-            credentials = db
-                .prepare(`
-                    SELECT
-                        username,
-                        rank,
-                        unit,
-                        clearance
-                    FROM users
-                    WHERE id=?
-                `)
-                .get(
-                    application.linked_user
+        const code = req.query.code;
+
+        if (!code) {
+            return res
+                .status(400)
+                .send(
+                    "Missing Discord OAuth code."
                 );
-        }
-
-        res.json({
-            application,
-            messages,
-            credentials
-        });
-
-    } catch (error) {
-        console.error(error);
-
-        res.status(500).json({
-            error: 'SERVER_ERROR'
-        });
-    }
-});
-
-/* =========================
-   LOGIN
-========================= */
-
-app.post('/api/login', (req, res, next) => {
-    try {
-        const username =
-            String(
-                req.body.username || ''
-            ).trim();
-
-        const password =
-            String(
-                req.body.password || ''
-            );
-
-        const user = db
-            .prepare(
-                'SELECT * FROM users WHERE username=?'
-            )
-            .get(username);
-
-        if (
-            !user ||
-            !bcrypt.compareSync(
-                password,
-                user.password
-            )
-        ) {
-            audit(
-                req,
-                'LOGIN_FAILED',
-                `username=${username}`
-            );
-
-            return res
-                .status(401)
-                .json({
-                    error:
-                        'INVALID_CREDENTIALS'
-                });
-        }
-
-        req.session.regenerate((error) => {
-            if (error) {
-                return next(error);
-            }
-
-            req.session.user = user;
-
-            req.session.save((saveError) => {
-                if (saveError) {
-                    return next(saveError);
-                }
-
-                audit(
-                    req,
-                    'LOGIN_SUCCESS',
-                    `rank=${user.rank}`
-                );
-
-                res.json({
-                    user: safeUser(user)
-                });
-            });
-        });
-
-    } catch (error) {
-        next(error);
-    }
-});
-
-/* =========================
-   LOGOUT
-========================= */
-
-app.post(
-    '/api/logout',
-    auth,
-    (req, res) => {
-        audit(req, 'LOGOUT');
-
-        req.session.destroy(() => {
-            res.json({
-                ok: true
-            });
-        });
-    }
-);
-
-/* =========================
-   CURRENT USER
-========================= */
-
-app.get('/api/me', (req, res) => {
-    res.json({
-        user: safeUser(
-            req.session.user
-        )
-    });
-});
-
-/* =========================
-   DASHBOARD
-========================= */
-
-app.get(
-    '/api/dashboard',
-    auth,
-    (req, res) => {
-        const user =
-            req.session.user;
-
-        const messages = db
-            .prepare(`
-                SELECT
-                    id,
-                    sender_label,
-                    subject,
-                    body,
-                    type,
-                    created_at,
-                    read
-                FROM messages
-                WHERE recipient_user=?
-                ORDER BY id DESC
-            `)
-            .all(user.id);
-
-        const reports = db
-            .prepare(`
-                SELECT
-                    id,
-                    title,
-                    author,
-                    classification,
-                    created_at
-                FROM reports
-                ORDER BY id DESC
-            `)
-            .all()
-            .filter(
-                (report) =>
-                    canView(
-                        user,
-                        report.classification
-                    )
-            );
-
-        res.json({
-            user: safeUser(user),
-            messages,
-            reports
-        });
-    }
-);
-
-/* =========================
-   READ MESSAGE
-========================= */
-
-app.post(
-    '/api/messages/:id/read',
-    auth,
-    (req, res) => {
-        db.prepare(`
-            UPDATE messages
-            SET read=1
-            WHERE id=?
-            AND recipient_user=?
-        `).run(
-            req.params.id,
-            req.session.user.id
-        );
-
-        res.json({
-            ok: true
-        });
-    }
-);
-
-/* =========================
-   ADMIN APPLICATIONS
-========================= */
-
-app.get(
-    '/api/admin/applications',
-    admin,
-    (req, res) => {
-        const applications = db
-            .prepare(`
-                SELECT
-                    id,
-                    name,
-                    age,
-                    unit,
-                    experience,
-                    why,
-                    status,
-                    linked_user,
-                    created_at,
-                    updated_at
-                FROM applications
-                ORDER BY id DESC
-            `)
-            .all();
-
-        res.json(applications);
-    }
-);
-
-/* =========================
-   APPROVE APPLICATION
-========================= */
-
-app.post(
-    '/api/admin/application/:id/approve',
-    admin,
-    (req, res) => {
-        const application = db
-            .prepare(
-                'SELECT * FROM applications WHERE id=?'
-            )
-            .get(req.params.id);
-
-        if (!application) {
-            return res.sendStatus(404);
-        }
-
-        if (
-            application.status ===
-            'APPROVED'
-        ) {
-            return res
-                .status(400)
-                .json({
-                    error:
-                        'ALREADY_APPROVED'
-                });
-        }
-
-        let username =
-            cleanUsername(
-                application.name,
-                application.id
-            );
-
-        while (
-            db
-                .prepare(
-                    'SELECT id FROM users WHERE username=?'
-                )
-                .get(username)
-        ) {
-            username =
-                cleanUsername(
-                    application.name,
-                    application.id
-                ) +
-                '_' +
-                crypto
-                    .randomBytes(2)
-                    .toString('hex');
-        }
-
-        const password =
-            randomPassword();
-
-        const rank = 'AGENT';
-
-        const clearance =
-            'RESTRICTED';
-
-        const userInfo = db
-            .prepare(`
-                INSERT INTO users(
-                    username,
-                    password,
-                    rank,
-                    unit,
-                    clearance,
-                    in_game_name
-                )
-                VALUES (?, ?, ?, ?, ?, ?)
-            `)
-            .run(
-                username,
-                bcrypt.hashSync(
-                    password,
-                    12
-                ),
-                rank,
-                application.unit,
-                clearance,
-                application.name
-            );
-
-        db.prepare(`
-            UPDATE applications
-            SET
-                status=?,
-                linked_user=?,
-                updated_at=CURRENT_TIMESTAMP
-            WHERE id=?
-        `).run(
-            'APPROVED',
-            userInfo.lastInsertRowid,
-            application.id
-        );
-
-        const body =
-            `Your CIA application has been APPROVED.\n\n` +
-            `USERNAME: ${username}\n` +
-            `PASSWORD: ${password}\n` +
-            `UNIT: ${application.unit}\n` +
-            `RANK: ${rank}\n` +
-            `CLEARANCE: ${clearance}\n\n` +
-            `Keep these credentials private.`;
-
-        db.prepare(`
-            INSERT INTO messages(
-                sender_id,
-                sender_label,
-                recipient_user,
-                recipient_application,
-                subject,
-                body,
-                type
-            )
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        `).run(
-            req.session.user.id,
-            req.session.user.rank,
-            userInfo.lastInsertRowid,
-            application.id,
-            'ACCOUNT ISSUED',
-            body,
-            'CREDENTIALS'
-        );
-
-        audit(
-            req,
-            'APPLICATION_APPROVED',
-            `application=${application.id};user=${username};newUser=${userInfo.lastInsertRowid}`
-        );
-
-        res.json({
-            ok: true,
-            username,
-            password
-        });
-    }
-);
-
-/* =========================
-   REJECT APPLICATION
-========================= */
-
-app.post(
-    '/api/admin/application/:id/reject',
-    admin,
-    (req, res) => {
-        db.prepare(`
-            UPDATE applications
-            SET
-                status=?,
-                updated_at=CURRENT_TIMESTAMP
-            WHERE id=?
-        `).run(
-            'REJECTED',
-            req.params.id
-        );
-
-        audit(
-            req,
-            'APPLICATION_REJECTED',
-            `application=${req.params.id}`
-        );
-
-        res.json({
-            ok: true
-        });
-    }
-);
-
-/* =========================
-   ADMIN USERS
-========================= */
-
-app.get(
-    '/api/admin/users',
-    admin,
-    (req, res) => {
-        res.json(
-            db.prepare(`
-                SELECT
-                    id,
-                    username,
-                    in_game_name,
-                    rank,
-                    unit,
-                    clearance,
-                    created_at
-                FROM users
-                ORDER BY id DESC
-            `).all()
-        );
-    }
-);
-
-/* =========================
-   CREATE USER
-========================= */
-
-app.post(
-    '/api/admin/users',
-    command,
-    (req, res) => {
-        const {
-            username,
-            password,
-            rank,
-            unit,
-            clearance
-        } = req.body;
-
-        if (
-            !username ||
-            !password ||
-            !RANKS.includes(rank) ||
-            !unit ||
-            !Object.prototype.hasOwnProperty.call(
-                clearanceRank,
-                clearance
-            )
-        ) {
-            return res
-                .status(400)
-                .json({
-                    error:
-                        'INVALID_DATA'
-                });
         }
 
         try {
-            const result = db
-                .prepare(`
-                    INSERT INTO users(
-                        username,
-                        password,
-                        rank,
-                        unit,
-                        clearance,
-                        in_game_name
-                    )
-                    VALUES (?, ?, ?, ?, ?, ?)
-                `)
-                .run(
-                    username,
-                    bcrypt.hashSync(
-                        password,
-                        12
-                    ),
-                    rank,
-                    unit,
-                    clearance,
-                    req.body.in_game_name ||
-                        username
+
+            // -----------------------------------------
+            // Exchange code for token
+            // -----------------------------------------
+
+            const tokenResponse =
+                await fetch(
+                    "https://discord.com/api/oauth2/token",
+                    {
+                        method: "POST",
+
+                        headers: {
+                            "Content-Type":
+                                "application/x-www-form-urlencoded"
+                        },
+
+                        body:
+                            new URLSearchParams({
+                                client_id:
+                                    DISCORD_CLIENT_ID,
+
+                                client_secret:
+                                    DISCORD_CLIENT_SECRET,
+
+                                grant_type:
+                                    "authorization_code",
+
+                                code,
+
+                                redirect_uri:
+                                    DISCORD_REDIRECT_URI
+                            })
+                    }
                 );
 
-            audit(
-                req,
-                'USER_CREATED',
-                `user=${username};rank=${rank}`
-            );
+            if (!tokenResponse.ok) {
 
-            res.json({
-                ok: true,
-                id:
-                    result.lastInsertRowid
-            });
+                const error =
+                    await tokenResponse.text();
 
-        } catch (error) {
-            res
-                .status(400)
-                .json({
-                    error:
-                        'USERNAME_EXISTS'
-                });
-        }
-    }
-);
+                console.error(
+                    "Discord token error:",
+                    error
+                );
 
-/* =========================
-   SEND MESSAGE
-========================= */
-
-app.post(
-    '/api/admin/message',
-    admin,
-    (req, res) => {
-        const {
-            target,
-            subject,
-            body,
-            type = 'MESSAGE'
-        } = req.body;
-
-        if (
-            !target ||
-            !subject ||
-            !body
-        ) {
-            return res
-                .status(400)
-                .json({
-                    error:
-                        'MISSING_FIELDS'
-                });
-        }
-
-        if (
-            String(target).startsWith(
-                'app:'
-            )
-        ) {
-            const id = Number(
-                String(target).slice(4)
-            );
-
-            const application = db
-                .prepare(
-                    'SELECT id FROM applications WHERE id=?'
-                )
-                .get(id);
-
-            if (!application) {
                 return res
-                    .status(404)
-                    .json({
-                        error:
-                            'APPLICATION_NOT_FOUND'
-                    });
+                    .status(500)
+                    .send(
+                        "Discord authentication failed."
+                    );
             }
 
-            db.prepare(`
-                INSERT INTO messages(
-                    sender_id,
-                    sender_label,
-                    recipient_application,
-                    subject,
-                    body,
-                    type
-                )
-                VALUES (?, ?, ?, ?, ?, ?)
-            `).run(
-                req.session.user.id,
-                req.session.user.rank,
-                application.id,
-                subject,
-                body,
-                type
+            const tokenData =
+                await tokenResponse.json();
+
+            // -----------------------------------------
+            // Get Discord account
+            // -----------------------------------------
+
+            const userResponse =
+                await fetch(
+                    "https://discord.com/api/users/@me",
+                    {
+                        headers: {
+                            Authorization:
+                                `${tokenData.token_type} ${tokenData.access_token}`
+                        }
+                    }
+                );
+
+            if (!userResponse.ok) {
+
+                const error =
+                    await userResponse.text();
+
+                console.error(
+                    "Discord user error:",
+                    error
+                );
+
+                return res
+                    .status(500)
+                    .send(
+                        "Unable to retrieve Discord account."
+                    );
+            }
+
+            const discordUser =
+                await userResponse.json();
+
+            // -----------------------------------------
+            // User information
+            // -----------------------------------------
+
+            const user = {
+                id:
+                    discordUser.id,
+
+                username:
+                    discordUser.username,
+
+                global_name:
+                    discordUser.global_name ||
+                    null,
+
+                email:
+                    discordUser.email ||
+                    null,
+
+                avatar:
+                    discordUser.avatar ||
+                    null
+            };
+
+            // -----------------------------------------
+            // Create session
+            // -----------------------------------------
+
+            req.session.user = user;
+
+            // -----------------------------------------
+            // Save login
+            // -----------------------------------------
+
+            saveLoginLog(
+                user,
+                req
             );
 
-            audit(
-                req,
-                'APPLICATION_MESSAGE_SENT',
-                `application=${id};type=${type};subject=${subject}`
+            // -----------------------------------------
+            // Enter website
+            // -----------------------------------------
+
+            return res.redirect(
+                "/"
             );
 
-            return res.json({
-                ok: true
-            });
-        }
+        } catch (error) {
 
-        const user = db
-            .prepare(
-                'SELECT id FROM users WHERE username=?'
-            )
-            .get(target);
+            console.error(
+                "OAuth error:",
+                error
+            );
 
-        if (!user) {
             return res
-                .status(404)
-                .json({
-                    error:
-                        'USER_NOT_FOUND'
-                });
+                .status(500)
+                .send(
+                    "Authentication error."
+                );
         }
-
-        db.prepare(`
-            INSERT INTO messages(
-                sender_id,
-                sender_label,
-                recipient_user,
-                subject,
-                body,
-                type
-            )
-            VALUES (?, ?, ?, ?, ?, ?)
-        `).run(
-            req.session.user.id,
-            req.session.user.rank,
-            user.id,
-            subject,
-            body,
-            type
-        );
-
-        audit(
-            req,
-            'MESSAGE_SENT',
-            `to=${target};type=${type};subject=${subject}`
-        );
-
-        res.json({
-            ok: true
-        });
     }
 );
 
-/* =========================
-   UPLOAD REPORT
-========================= */
-
-app.post(
-    '/api/admin/reports',
-    admin,
-    upload.single('pdf'),
-    (req, res) => {
-        if (
-            !req.body.title ||
-            !req.file
-        ) {
-            return res
-                .status(400)
-                .json({
-                    error:
-                        'TITLE_AND_PDF_REQUIRED'
-                });
-        }
-
-        const finalPath =
-            path.join(
-                uploads,
-                req.file.filename +
-                    '.pdf'
-            );
-
-        fs.renameSync(
-            req.file.path,
-            finalPath
-        );
-
-        const result = db
-            .prepare(`
-                INSERT INTO reports(
-                    title,
-                    author,
-                    classification,
-                    file
-                )
-                VALUES (?, ?, ?, ?)
-            `)
-            .run(
-                req.body.title,
-                req.session.user.id,
-                req.body.classification ||
-                    'CONFIDENTIAL',
-                finalPath
-            );
-
-        audit(
-            req,
-            'REPORT_REGISTERED',
-            `report=${result.lastInsertRowid};title=${req.body.title}`
-        );
-
-        res.json({
-            ok: true,
-            id:
-                result.lastInsertRowid
-        });
-    }
-);
-
-/* =========================
-   VIEW REPORT
-========================= */
+// =====================================================
+// CURRENT USER
+// =====================================================
 
 app.get(
-    '/api/reports/:id',
-    auth,
+    "/api/me",
+    requireDiscordLogin,
     (req, res) => {
-        const report = db
-            .prepare(
-                'SELECT * FROM reports WHERE id=?'
-            )
-            .get(req.params.id);
 
-        if (
-            !report ||
-            !canView(
-                req.session.user,
-                report.classification
-            ) ||
-            !fs.existsSync(report.file)
-        ) {
-            return res.sendStatus(404);
-        }
+        res.json({
+            authenticated: true,
 
-        audit(
-            req,
-            'REPORT_VIEWED',
-            `report=${report.id}`
+            user:
+                req.session.user
+        });
+    }
+);
+
+// =====================================================
+// LOGOUT
+// =====================================================
+
+app.get(
+    "/logout",
+    (req, res) => {
+
+        req.session.destroy(
+            () => {
+                res.redirect(
+                    "/auth/discord"
+                );
+            }
         );
+    }
+);
+
+// =====================================================
+// PROTECT ALL PUBLIC FILES
+// =====================================================
+
+app.use(
+    requireDiscordLogin
+);
+
+app.use(
+    express.static(
+        path.join(
+            __dirname,
+            "public"
+        )
+    )
+);
+
+// =====================================================
+// 404
+// =====================================================
+
+app.use(
+    (req, res) => {
 
         res
-            .type('application/pdf')
-            .sendFile(
-                path.resolve(
-                    report.file
-                )
+            .status(404)
+            .send(
+                "404 - Page Not Found"
             );
     }
 );
 
-/* =========================
-   COMMAND AUDIT LOG
-========================= */
-
-app.get(
-    '/api/command/audit',
-    command,
-    (req, res) => {
-        const logs = db
-            .prepare(`
-                SELECT
-                    id,
-                    actor,
-                    actor_label,
-                    action,
-                    ip,
-                    details,
-                    created_at
-                FROM audit
-                ORDER BY id DESC
-                LIMIT 500
-            `)
-            .all();
-
-        res.json(logs);
-    }
-);
-
-/* =========================
-   SECTOR
-========================= */
-
-app.get(
-    '/api/sector',
-    auth,
-    (req, res) => {
-        const users = db
-            .prepare(`
-                SELECT
-                    id,
-                    username,
-                    in_game_name,
-                    rank,
-                    unit,
-                    clearance,
-                    created_at
-                FROM users
-                ORDER BY
-                    CASE rank
-                        WHEN "COMMAND OF CIA" THEN 1
-                        WHEN "AGENT OFFICER" THEN 2
-                        ELSE 3
-                    END,
-                    id
-            `)
-            .all();
-
-        res.json(users);
-    }
-);
-
-/* =========================
-   ERROR HANDLER
-========================= */
+// =====================================================
+// ERROR HANDLER
+// =====================================================
 
 app.use(
     (err, req, res, next) => {
-        console.error(
-            'SERVER ERROR:',
-            err
-        );
 
-        if (res.headersSent) {
-            return next(err);
-        }
+        console.error(err);
 
         res
             .status(500)
-            .json({
-                error:
-                    'SERVER_ERROR',
-                message:
-                    process.env.NODE_ENV ===
-                    'development'
-                        ? err.message
-                        : 'Internal server error'
-            });
+            .send(
+                "Internal Server Error"
+            );
     }
 );
 
-/* =========================
-   SERVER
-========================= */
-
-const PORT = Number(
-    process.env.PORT || 3000
-);
-
-const HOST =
-    process.env.HOST ||
-    '0.0.0.0';
+// =====================================================
+// START
+// =====================================================
 
 app.listen(
     PORT,
-    HOST,
+    "0.0.0.0",
     () => {
+
         console.log(
-            `CIA RP running on http://${HOST}:${PORT}`
+            `CIA RP server running on port ${PORT}`
         );
     }
 );
