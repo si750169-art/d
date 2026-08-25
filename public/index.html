@@ -7,429 +7,188 @@
 
 <style>
 :root{
---bg:#04070a;
---p:#091016;
---p2:#0d151c;
---l:#1c2a33;
---t:#eaf0f3;
---m:#71808a;
---r:#d71920;
---g:#35d39c;
---a:#e5b84c
+--bg:#04070a;--p:#091016;--p2:#0d151c;--l:#1c2a33;
+--t:#eaf0f3;--m:#71808a;--r:#d71920;--g:#35d39c;--a:#e5b84c
 }
-
 *{box-sizing:border-box}
-
 body{
 margin:0;
 background:radial-gradient(circle at 80% 0,#162028 0,#04070a 42%);
 color:var(--t);
 font-family:Arial,Tahoma,sans-serif
 }
-
 button,input,select,textarea{font:inherit}
-
-.wrap{
-max-width:1280px;
-margin:auto;
-padding:24px
-}
-
+.wrap{max-width:1280px;margin:auto;padding:24px}
 .top{
-display:flex;
-justify-content:space-between;
-align-items:center;
-border-bottom:1px solid var(--l);
-padding-bottom:17px
+display:flex;justify-content:space-between;align-items:center;
+border-bottom:1px solid var(--l);padding-bottom:17px
 }
-
-.brand{
-font-weight:900;
-letter-spacing:2px
-}
-
-.mono{
-font-family:Consolas,monospace
-}
-
-.muted{
-color:var(--m);
-font-size:12px
-}
-
+.brand{font-weight:900;letter-spacing:2px}
+.mono{font-family:Consolas,monospace}
+.muted{color:var(--m);font-size:12px}
 .btn{
-background:#111a21;
-border:1px solid #33444d;
-color:#fff;
-padding:9px 13px;
-border-radius:5px;
-cursor:pointer
+background:#111a21;border:1px solid #33444d;color:#fff;
+padding:9px 13px;border-radius:5px;cursor:pointer
 }
-
-.btn:hover{
-filter:brightness(1.2)
-}
-
-.red{
-background:#351014;
-border-color:#72252c
-}
-
-.green{
-background:#0c2a20;
-border-color:#28674f
-}
-
-.amber{
-background:#2a2412;
-border-color:#65531f
-}
-
-.small{
-padding:6px 9px;
-font-size:11px
-}
-
+.btn:hover{filter:brightness(1.2)}
+.red{background:#351014;border-color:#72252c}
+.green{background:#0c2a20;border-color:#28674f}
+.amber{background:#2a2412;border-color:#65531f}
+.small{padding:6px 9px;font-size:11px}
 .hero,.panel,.card{
 background:rgba(8,14,19,.96);
 border:1px solid var(--l);
 border-radius:7px
 }
-
-.hero{
-padding:36px;
-margin:25px 0;
-position:relative;
-overflow:hidden
-}
-
+.hero{padding:36px;margin:25px 0;position:relative;overflow:hidden}
 .hero:after{
 content:'CLASSIFIED // CIA ROLEPLAY';
-position:absolute;
-left:20px;
-bottom:13px;
-color:#26343d;
-font:10px Consolas;
+position:absolute;left:20px;bottom:13px;
+color:#26343d;font:10px Consolas;
 transform:rotate(-8deg)
 }
-
-h1{
-font-size:34px;
-margin:8px 0
-}
-
-.hero p{
-max-width:800px;
-color:#9aa7ae;
-line-height:1.8
-}
-
-.grid{
-display:grid;
-grid-template-columns:repeat(3,1fr);
-gap:14px
-}
-
-.card,.panel{
-padding:18px
-}
-
-.panel{
-margin-top:14px
-}
-
-.field{
-margin:10px 0
-}
-
+h1{font-size:34px;margin:8px 0}
+.hero p{max-width:800px;color:#9aa7ae;line-height:1.8}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.card,.panel{padding:18px}
+.panel{margin-top:14px}
+.field{margin:10px 0}
 .field label{
-display:block;
-color:#84929a;
-font:11px Consolas;
-margin-bottom:6px
+display:block;color:#84929a;font:11px Consolas;margin-bottom:6px
 }
-
 .input{
-width:100%;
-background:#04080b;
-border:1px solid #263640;
-color:#fff;
-border-radius:5px;
-padding:10px;
-outline:0
+width:100%;background:#04080b;border:1px solid #263640;
+color:#fff;border-radius:5px;padding:10px;outline:0
 }
-
-.input:focus{
-border-color:#71848e
-}
-
-.cols{
-display:grid;
-grid-template-columns:1fr 1fr;
-gap:13px
-}
-
-.tabs{
-display:flex;
-gap:7px;
-flex-wrap:wrap;
-margin:15px 0
-}
-
+.input:focus{border-color:#71848e}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:13px}
+.tabs{display:flex;gap:7px;flex-wrap:wrap;margin:15px 0}
 .tag{
-display:inline-block;
-border:1px solid #3b4a53;
-border-radius:3px;
-padding:4px 7px;
-font:10px Consolas;
-color:#c7d0d5;
-margin:2px
+display:inline-block;border:1px solid #3b4a53;
+border-radius:3px;padding:4px 7px;font:10px Consolas;
+color:#c7d0d5;margin:2px
 }
-
-.tag.red{
-border-color:#6c252c;
-color:#ff6c73
-}
-
-.tag.green{
-border-color:#25684f;
-color:#48dfa9
-}
-
-.tag.amber{
-border-color:#66541f;
-color:#e7c25d
-}
-
-.table{
-width:100%;
-border-collapse:collapse
-}
-
+.tag.red{border-color:#6c252c;color:#ff6c73}
+.tag.green{border-color:#25684f;color:#48dfa9}
+.tag.amber{border-color:#66541f;color:#e7c25d}
+.table{width:100%;border-collapse:collapse}
 .table th,.table td{
 border-bottom:1px solid #17242d;
-padding:11px;
-text-align:left;
-font-size:12px;
+padding:11px;text-align:left;font-size:12px;
 vertical-align:top
 }
-
-.table th{
-color:#687780;
-font:10px Consolas
-}
-
+.table th{color:#687780;font:10px Consolas}
 .notice{
 border-left:3px solid var(--r);
 background:#120b0d;
-padding:12px;
-color:#aeb9bf;
-font-size:12px
+padding:12px;color:#aeb9bf;font-size:12px
 }
-
 .toast{
-position:fixed;
-left:22px;
-bottom:22px;
-z-index:9999;
-min-width:280px;
-max-width:420px;
-background:#0a1117;
-border:1px solid #33434e;
-color:#e8eef2;
-padding:13px 15px;
-border-radius:6px;
+position:fixed;left:22px;bottom:22px;z-index:9999;
+min-width:280px;max-width:420px;
+background:#0a1117;border:1px solid #33434e;color:#e8eef2;
+padding:13px 15px;border-radius:6px;
 box-shadow:0 15px 45px #000;
-transform:translateY(20px);
-opacity:0;
-pointer-events:none;
-transition:.2s
+transform:translateY(20px);opacity:0;
+pointer-events:none;transition:.2s
 }
-
-.toast.show{
-transform:translateY(0);
-opacity:1
-}
-
+.toast.show{transform:translateY(0);opacity:1}
 .modal{
-position:fixed;
-inset:0;
-background:#000c;
-display:grid;
-place-items:center;
-z-index:90;
-padding:20px
+position:fixed;inset:0;background:#000c;
+display:grid;place-items:center;z-index:90;padding:20px
 }
-
 .modalbox{
-width:min(1100px,96vw);
-height:min(800px,94vh);
-background:#080d12;
-border:1px solid #3b4b55;
-border-radius:8px;
-overflow:hidden;
-display:flex;
-flex-direction:column
+width:min(1100px,96vw);height:min(800px,94vh);
+background:#080d12;border:1px solid #3b4b55;
+border-radius:8px;overflow:hidden;
+display:flex;flex-direction:column
 }
-
 .modalhead{
-padding:10px 14px;
-border-bottom:1px solid var(--l);
+padding:10px 14px;border-bottom:1px solid var(--l);
+display:flex;justify-content:space-between
+}
+.modal iframe{width:100%;height:100%;border:0;background:#222}
+.hidden{display:none!important}
+.empty{padding:30px;text-align:center;color:var(--m)}
+.kicker{font:11px Consolas;color:#ff4b55;letter-spacing:2px}
+.profile{display:flex;gap:7px;flex-wrap:wrap}
+.message{margin:10px 0}
+.message.unread{border-color:#743039}
+.message p{white-space:pre-line;line-height:1.7}
+.login{max-width:550px;margin:70px auto}
+.danger{color:#ff6570}
+.ok{color:var(--g)}
+
+.langbox{
+display:flex;border:1px solid #27343e;
+background:#080d12;border-radius:5px;overflow:hidden
+}
+.lang{
+border:0;background:transparent;color:#71808b;
+padding:7px 10px;font:11px Consolas
+}
+.lang.active{background:#16212a;color:#fff}
+
+.log-header{
 display:flex;
-justify-content:space-between
+justify-content:space-between;
+align-items:center;
+gap:10px;
+flex-wrap:wrap;
+margin-bottom:15px
 }
 
-.modal iframe{
-width:100%;
-height:100%;
-border:0;
-background:#222
+.log-title{
+font-size:24px;
+font-weight:900;
+letter-spacing:1px
 }
 
-.hidden{
-display:none!important
+.log-row{
+background:#070d12;
+border:1px solid #17242d;
+border-radius:6px;
+padding:14px;
+margin-bottom:9px
 }
 
-.empty{
-padding:30px;
-text-align:center;
-color:var(--m)
-}
-
-.kicker{
-font:11px Consolas;
-color:#ff4b55;
-letter-spacing:2px
-}
-
-.profile{
+.log-meta{
 display:flex;
-gap:7px;
-flex-wrap:wrap
-}
-
-.message{
-margin:10px 0
-}
-
-.message.unread{
-border-color:#743039
-}
-
-.message p{
-white-space:pre-line;
-line-height:1.7
-}
-
-.login{
-max-width:550px;
-margin:70px auto
-}
-
-.danger{
-color:#ff6570
-}
-
-.ok{
-color:var(--g)
-}
-
-.copybox{
-display:flex;
-gap:7px;
-align-items:center
-}
-
-.copybox .input{
-flex:1
-}
-
-.log-table{
-max-height:650px;
-overflow:auto
-}
-
-.log-table td{
-font-size:11px
+gap:8px;
+flex-wrap:wrap;
+align-items:center;
+margin-bottom:8px
 }
 
 .log-action{
 font-family:Consolas,monospace;
-color:#e7c25d
+color:#e5b84c;
+font-weight:bold
 }
 
-.log-ip{
+.log-details{
 font-family:Consolas,monospace;
-color:#8eb8cc
+font-size:12px;
+color:#aeb9bf;
+white-space:pre-wrap;
+word-break:break-word
 }
 
-.client-id{
-font-family:Consolas,monospace;
-color:#35d39c
+.copy-id{
+cursor:pointer
 }
 
-.error-id{
-font-family:Consolas,monospace;
-color:#ff6570
-}
-
-.langbox{
-display:flex;
-border:1px solid #27343e;
-background:#080d12;
-border-radius:5px;
-overflow:hidden
-}
-
-.lang{
-border:0;
-background:transparent;
-color:#71808b;
-padding:7px 10px;
-font:11px Consolas
-}
-
-.lang.active{
-background:#16212a;
-color:#fff
-}
-
-.rtl{
-direction:rtl
-}
-
-.rtl .top{
-direction:rtl
-}
-
-.rtl .table{
-text-align:right
-}
-
-.rtl .field{
-text-align:right
-}
+.rtl{direction:rtl}
+.rtl .top{direction:rtl}
+.rtl .table{text-align:right}
+.rtl .field{text-align:right}
 
 @media(max-width:800px){
-.grid,.cols{
-grid-template-columns:1fr
-}
-
-.wrap{
-padding:14px
-}
-
-h1{
-font-size:26px
-}
-
-.table{
-font-size:11px
-}
-
-.table th,.table td{
-padding:8px
-}
+.grid,.cols{grid-template-columns:1fr}
+.wrap{padding:14px}
+h1{font-size:26px}
+.table{font-size:11px}
+.table th,.table td{padding:8px}
 }
 </style>
 </head>
@@ -488,14 +247,13 @@ PERSONNEL LOGIN
 
 </section>
 
-
 <div class="grid">
 
 <div class="card">
 <span class="tag">RECRUITMENT</span>
 <h3>Apply in English</h3>
 <p class="muted">
-Submit your exact in-game name and Discord information.
+Submit your exact in-game name and Discord ID.
 </p>
 </div>
 
@@ -503,8 +261,7 @@ Submit your exact in-game name and Discord information.
 <span class="tag green">PERSISTENT</span>
 <h3>Private Dashboard</h3>
 <p class="muted">
-Return later from the same browser and your application status
-and messages remain.
+Your application remains available from this browser.
 </p>
 </div>
 
@@ -512,11 +269,12 @@ and messages remain.
 <span class="tag red">CLASSIFIED</span>
 <h3>Command Reports</h3>
 <p class="muted">
-Authorized personnel can register classified reports.
+Authorized personnel can access classified intelligence.
 </p>
 </div>
 
 </div>
+
 </div>
 
 
@@ -551,8 +309,6 @@ APPLICATION
 
 <p id="appMeta"></p>
 
-<div id="applicationIdBox"></div>
-
 </div>
 
 <div class="tabs">
@@ -576,7 +332,7 @@ HOME
 </div>
 
 
-<!-- USER DASHBOARD -->
+<!-- NORMAL USER DASHBOARD -->
 
 <div id="userDash" class="hidden">
 
@@ -591,7 +347,6 @@ PERSONNEL DASHBOARD
 <div id="profile" class="profile"></div>
 
 </div>
-
 
 <div class="tabs">
 
@@ -617,12 +372,6 @@ onclick="userTab('admin')">
 ADMIN COMMAND
 </button>
 
-<button id="logBtn"
-class="btn amber hidden"
-onclick="userTab('logs')">
-LOGS
-</button>
-
 <button class="btn" onclick="logout()">
 LOGOUT
 </button>
@@ -633,8 +382,8 @@ LOGOUT
 
 </div>
 
-</div>
 
+<!-- PDF -->
 
 <div id="pdfModal" class="modal hidden">
 
@@ -661,45 +410,45 @@ CLOSE
 
 <div id="toast" class="toast"></div>
 
+</div>
+
 
 <script>
 
-const $ = id => document.getElementById(id);
+const $=id=>document.getElementById(id);
 
-let me = null;
-let udata = null;
-let appdata = null;
+let me=null;
+let udata=null;
+let appdata=null;
 
-const adminRanks = [
+const adminRanks=[
 "AGENT OFFICER",
 "COMMAND OF CIA"
 ];
 
-const LOG_USERNAME = "log";
+const LOG_ACCOUNT="log";
+const LOG_RANK="ALPHA";
 
 
 function esc(v){
-
-return String(v ?? "")
-.replace(/[&<>"']/g,m=>({
-"&":"&amp;",
-"<":"&lt;",
-">":"&gt;",
-'"':"&quot;",
-"'":"&#39;"
-}[m]));
-
+return String(v??'').replace(/[&<>"']/g,m=>({
+'&':'&amp;',
+'<':'&lt;',
+'>':'&gt;',
+'"':'&quot;',
+"'":'&#39;'
+}[m]))
 }
 
 
 function toast(t){
 
-$("toast").textContent=t;
+$('toast').textContent=t;
 
-$("toast").classList.add("show");
+$('toast').classList.add('show');
 
 setTimeout(
-()=>$("toast").classList.remove("show"),
+()=>$('toast').classList.remove('show'),
 3000
 );
 
@@ -709,46 +458,41 @@ setTimeout(
 function base(){
 
 [
-"home",
-"auth",
-"appDash",
-"userDash"
+'home',
+'auth',
+'appDash',
+'userDash'
 ].forEach(
-x=>$(x).classList.add("hidden")
+x=>$(x).classList.add('hidden')
 );
 
-$("topActions").classList.remove("hidden");
+$('topActions').classList.remove('hidden');
 
-$("home").classList.remove("hidden");
+$('home').classList.remove('hidden');
 
 }
 
 
 function backHome(){
-
 location.reload();
-
 }
 
 
-/* =====================================================
-LOGIN
-===================================================== */
+/* LOGIN */
 
 function loginPage(){
 
-$("home").classList.add("hidden");
-$("appDash").classList.add("hidden");
-$("userDash").classList.add("hidden");
+$('home').classList.add('hidden');
+$('appDash').classList.add('hidden');
+$('userDash').classList.add('hidden');
+$('auth').classList.remove('hidden');
 
-$("auth").classList.remove("hidden");
+$('authTitle').textContent=
+lang==='ar'
+?'تسجيل دخول الأفراد'
+:'SECURE PERSONNEL LOGIN';
 
-$("authTitle").textContent =
-lang==="ar"
-?"تسجيل دخول الأفراد"
-:"SECURE PERSONNEL LOGIN";
-
-$("authBody").innerHTML=`
+$('authBody').innerHTML=`
 
 <div class="field">
 
@@ -761,7 +505,6 @@ autocomplete="username"
 >
 
 </div>
-
 
 <div class="field">
 
@@ -776,7 +519,6 @@ autocomplete="current-password"
 
 </div>
 
-
 <button class="btn red"
 onclick="login()">
 AUTHENTICATE
@@ -789,52 +531,42 @@ BACK
 
 `;
 
-$("lp").addEventListener(
-"keydown",
+$('lp').addEventListener(
+'keydown',
 e=>{
-if(e.key==="Enter")login();
+if(e.key==='Enter') login()
 }
 );
 
-$("lu").focus();
+$('lu').focus();
 
 }
 
 
-/* =====================================================
-APPLICATION PAGE
-===================================================== */
+/* APPLICATION */
 
 function applyPage(){
 
-$("home").classList.add("hidden");
+$('home').classList.add('hidden');
 
-$("auth").classList.remove("hidden");
+$('auth').classList.remove('hidden');
 
-$("authTitle").textContent =
-"CIA APPLICATION // PERSONNEL IDENTIFICATION";
+$('authTitle').textContent=
+'CIA APPLICATION // PERSONNEL INFORMATION';
 
-
-$("authBody").innerHTML=`
+$('authBody').innerHTML=`
 
 <div class="notice">
 
-Use your exact in-game information.
+All information submitted here is attached to your
+CIA application record.
 
-If you know your Discord User ID,
-enter it in CLIENT ID.
-
-If you cannot find your Discord ID,
-enter your Discord USERNAME instead.
-
-If CLIENT ID is not provided,
-the system will record ERROR for the Client ID.
+Your Discord ID is used as your application identifier
+and is visible to authorized personnel.
 
 </div>
 
-
 <div class="cols">
-
 
 <div class="field">
 
@@ -845,6 +577,29 @@ id="an"
 class="input"
 placeholder="John Carter"
 >
+
+</div>
+
+
+<div class="field">
+
+<label>DISCORD ID</label>
+
+<input
+id="adi"
+class="input"
+placeholder="123456789012345678"
+inputmode="numeric"
+autocomplete="off"
+>
+
+<div class="muted" style="margin-top:6px">
+
+Enter your Discord User ID.
+Enable Developer Mode in Discord,
+then copy your User ID.
+
+</div>
 
 </div>
 
@@ -864,64 +619,15 @@ class="input"
 
 <div class="field">
 
-<label>DISCORD CLIENT ID / USER ID</label>
-
-<input
-id="acid"
-class="input"
-placeholder="123456789012345678"
-inputmode="numeric"
->
-
-<div class="muted">
-Your Discord User ID. If unavailable, enter your Discord username below.
-</div>
-
-</div>
-
-
-<div class="field">
-
-<label>DISCORD USERNAME</label>
-
-<input
-id="aduser"
-class="input"
-placeholder="username"
->
-
-<div class="muted">
-If you cannot provide Client ID, provide your Discord username.
-</div>
-
-</div>
-
-
-<div class="field">
-
 <label>REQUESTED UNIT</label>
 
 <select id="au" class="input">
 
-<option>
-Intelligence Operations
-</option>
-
-<option>
-Field Operations
-</option>
-
-<option>
-Cyber Intelligence
-</option>
-
-<option>
-Internal Affairs
-</option>
-
-<option>
-Protective Operations
-</option>
+<option>Intelligence Operations</option>
+<option>Field Operations</option>
+<option>Cyber Intelligence</option>
+<option>Internal Affairs</option>
+<option>Protective Operations</option>
 
 </select>
 
@@ -972,49 +678,51 @@ BACK
 }
 
 
-/* =====================================================
-APPLICATION SUBMIT
-===================================================== */
+/* SUBMIT */
 
 async function apply(){
 
-const clientId =
-$("acid").value.trim();
+const b={
 
-const discordUsername =
-$("aduser").value.trim();
+name:$('an').value.trim(),
 
+discord_id:$('adi').value.trim(),
 
-let b={
+age:$('aa').value,
 
-name:$("an").value.trim(),
+unit:$('au').value,
 
-age:$("aa").value,
+experience:$('ae').value.trim(),
 
-unit:$("au").value,
-
-experience:$("ae").value.trim(),
-
-why:$("aw").value.trim(),
-
-client_id:
-clientId || "ERROR",
-
-discord_username:
-discordUsername || "ERROR"
+why:$('aw').value.trim()
 
 };
 
 
 if(
-!b.name ||
-!b.age ||
-!b.experience ||
+!b.name||
+!b.discord_id||
+!b.age||
+!b.experience||
 !b.why
 ){
 
 return toast(
-"Complete every required field."
+'Complete every field including Discord ID.'
+);
+
+}
+
+
+/*
+Only normal Discord snowflake-looking IDs.
+No username option.
+*/
+
+if(!/^\d{15,25}$/.test(b.discord_id)){
+
+return toast(
+'Invalid Discord ID.'
 );
 
 }
@@ -1022,136 +730,70 @@ return toast(
 
 try{
 
-let r=await fetch(
-"/api/applications",
+const r=await fetch(
+'/api/applications',
 {
-method:"POST",
+method:'POST',
 headers:{
-"Content-Type":
-"application/json"
+'Content-Type':'application/json'
 },
-credentials:"same-origin",
+credentials:'same-origin',
 body:JSON.stringify(b)
 }
 );
 
-
-let j=await r.json();
-
+const j=await r.json();
 
 if(!r.ok){
 
 return toast(
-"Application could not be saved."
+j.error||'Application could not be saved.'
 );
 
 }
 
+
+/*
+Store application token.
+*/
 
 document.cookie=
-"cia_application="+
+'cia_application='+
 encodeURIComponent(j.token)+
-"; max-age=31536000; path=/; samesite=lax";
+'; max-age=31536000; path=/; samesite=lax';
 
 
-toast(
-"Application registered. Opening dashboard..."
-);
+/*
+Show Application ID + COPY.
+*/
 
+$('authBody').innerHTML=`
 
-setTimeout(
-loadApplication,
-500
-);
+<div class="panel">
 
-
-}catch(error){
-
-console.error(error);
-
-toast(
-"Server connection failed."
-);
-
-}
-
-}
-
-
-/* =====================================================
-APPLICATION DASHBOARD
-===================================================== */
-
-async function loadApplication(){
-
-let r=await fetch(
-"/api/application/me",
-{
-credentials:"same-origin"
-}
-);
-
-let j=await r.json();
-
-
-if(!j.application){
-
-return base();
-
-}
-
-
-appdata=j;
-
-$("auth").classList.add("hidden");
-$("home").classList.add("hidden");
-$("appDash").classList.remove("hidden");
-
-$("topActions").classList.add("hidden");
-
-
-$("appNameTitle").textContent =
-j.application.name;
-
-
-$("appStatus").innerHTML=
-'<span class="tag '+
-(
-j.application.status==="APPROVED"
-?"green":
-j.application.status==="REJECTED"
-?"red":
-"amber"
-)+
-'">'+
-esc(j.application.status)+
-'</span>';
-
-
-$("appMeta").textContent=
-"Application #"+
-j.application.id+
-" // "+
-j.application.unit+
-" // submitted "+
-j.application.created_at;
-
-
-$("applicationIdBox").innerHTML=`
-
-<div class="card">
-
-<div class="muted">
-APPLICATION ID
+<div class="kicker">
+APPLICATION REGISTERED
 </div>
 
-<div class="copybox">
+<h2>
+APPLICATION #${esc(j.id)}
+</h2>
+
+<p class="muted">
+Your application has been successfully registered.
+</p>
+
+<div class="field">
+
+<label>APPLICATION ID</label>
+
+<div style="display:flex;gap:8px">
 
 <input
-id="applicationIdInput"
-class="input mono"
+id="applicationIdCopy"
+class="input"
 readonly
-value="${esc(j.application.id)}"
+value="${esc(j.id)}"
 >
 
 <button
@@ -1164,38 +806,148 @@ COPY
 
 </div>
 
+
+<div class="field">
+
+<label>DISCORD ID</label>
+
+<div style="display:flex;gap:8px">
+
+<input
+class="input"
+readonly
+value="${esc(b.discord_id)}"
+>
+
+<button
+class="btn"
+onclick="copyText('${esc(b.discord_id)}')">
+COPY
+</button>
+
+</div>
+
+</div>
+
+
+<div class="notice">
+
+Keep your Application ID.
+
+It can be used by authorized personnel
+to identify your application.
+
+</div>
+
+<br>
+
+<button
+class="btn red"
+onclick="loadApplication()">
+OPEN APPLICATION DASHBOARD
+</button>
+
+</div>
+
 `;
 
-
-appTab("messages");
+toast(
+'Application registered successfully.'
+);
 
 }
 
+
+/* COPY */
 
 async function copyApplicationId(){
 
-const input=$("applicationIdInput");
+const el=$('applicationIdCopy');
 
-if(!input)return;
+await navigator.clipboard.writeText(
+el.value
+);
+
+toast('Application ID copied.');
+
+}
+
+
+async function copyText(value){
 
 try{
 
-await navigator.clipboard.writeText(
-input.value
-);
+await navigator.clipboard.writeText(value);
 
-toast(
-"Application ID copied."
-);
+toast('Copied.');
 
 }catch{
 
-input.select();
+toast('Copy failed.');
 
-document.execCommand("copy");
+}
+
+}
+
+
+/* LOAD APPLICATION */
+
+async function loadApplication(){
+
+try{
+
+let r=await fetch(
+'/api/application/me',
+{
+credentials:'same-origin'
+}
+);
+
+let j=await r.json();
+
+if(!j.application)
+return base();
+
+appdata=j;
+
+$('auth').classList.add('hidden');
+$('home').classList.add('hidden');
+$('userDash').classList.add('hidden');
+
+$('appDash').classList.remove('hidden');
+
+$('topActions').classList.add('hidden');
+
+$('appNameTitle').textContent=
+j.application.name;
+
+$('appStatus').innerHTML=
+'<span class="tag '+
+(
+j.application.status==='APPROVED'
+?'green':
+j.application.status==='REJECTED'
+?'red':
+'amber'
+)+
+'">'+
+esc(j.application.status)+
+'</span>';
+
+$('appMeta').textContent=
+'Application #'+
+j.application.id+
+' // '+
+j.application.unit+
+' // submitted '+
+j.application.created_at;
+
+appTab('messages');
+
+}catch{
 
 toast(
-"Application ID copied."
+'Application server connection error.'
 );
 
 }
@@ -1203,17 +955,15 @@ toast(
 }
 
 
-/* =====================================================
-APPLICATION TABS
-===================================================== */
+/* APPLICATION TABS */
 
 function appTab(t){
 
-if(t==="messages"){
+if(t==='messages'){
 
 let a=appdata.messages||[];
 
-$("appContent").innerHTML=
+$('appContent').innerHTML=
 
 '<div class="panel">'+
 '<h2>MESSAGES</h2>'+
@@ -1223,9 +973,10 @@ a.length
 
 ?
 
-a.map(m=>
+a.map(
+m=>
 '<div class="card message '+
-(!m.read?"unread":"")+
+(!m.read?'unread':'')+
 '">'+
 
 '<b>'+
@@ -1234,7 +985,7 @@ esc(m.subject)+
 
 '<div class="muted mono">'+
 esc(m.sender_label)+
-" // "+
+' // '+
 esc(m.created_at)+
 '</div>'+
 
@@ -1243,7 +994,7 @@ esc(m.body)+
 '</p>'+
 
 '</div>'
-).join("")
+).join('')
 
 :
 
@@ -1258,7 +1009,7 @@ return;
 }
 
 
-$("appContent").innerHTML=
+$('appContent').innerHTML=
 
 '<div class="panel">'+
 
@@ -1266,61 +1017,36 @@ $("appContent").innerHTML=
 
 '<table class="table">'+
 
-'<tr>'+
-'<th>APPLICATION ID</th>'+
-'<td class="mono">'+
+'<tr><th>APPLICATION ID</th><td>'+
 esc(appdata.application.id)+
-'</td>'+
-'</tr>'+
+'</td></tr>'+
 
-'<tr>'+
-'<th>IN-GAME NAME</th>'+
-'<td>'+
+'<tr><th>DISCORD ID</th><td>'+
+esc(
+appdata.application.discord_id||
+'ERROR'
+)+
+'</td></tr>'+
+
+'<tr><th>IN-GAME NAME</th><td>'+
 esc(appdata.application.name)+
-'</td>'+
-'</tr>'+
+'</td></tr>'+
 
-'<tr>'+
-'<th>DISCORD CLIENT ID</th>'+
-'<td class="client-id">'+
-esc(appdata.application.client_id || "ERROR")+
-'</td>'+
-'</tr>'+
-
-'<tr>'+
-'<th>DISCORD USERNAME</th>'+
-'<td>'+
-esc(appdata.application.discord_username || "ERROR")+
-'</td>'+
-'</tr>'+
-
-'<tr>'+
-'<th>UNIT</th>'+
-'<td>'+
+'<tr><th>UNIT</th><td>'+
 esc(appdata.application.unit)+
-'</td>'+
-'</tr>'+
+'</td></tr>'+
 
-'<tr>'+
-'<th>STATUS</th>'+
-'<td>'+
+'<tr><th>STATUS</th><td>'+
 esc(appdata.application.status)+
-'</td>'+
-'</tr>'+
+'</td></tr>'+
 
-'<tr>'+
-'<th>EXPERIENCE</th>'+
-'<td>'+
+'<tr><th>EXPERIENCE</th><td>'+
 esc(appdata.application.experience)+
-'</td>'+
-'</tr>'+
+'</td></tr>'+
 
-'<tr>'+
-'<th>WHY CIA</th>'+
-'<td>'+
+'<tr><th>WHY CIA</th><td>'+
 esc(appdata.application.why)+
-'</td>'+
-'</tr>'+
+'</td></tr>'+
 
 '</table>'+
 
@@ -1341,7 +1067,9 @@ esc(appdata.credentials.rank)+
 esc(appdata.credentials.unit)+
 '</div>'
 
-:""
+:
+
+''
 
 )+
 
@@ -1350,198 +1078,162 @@ esc(appdata.credentials.unit)+
 }
 
 
-/* =====================================================
-LOGIN
-===================================================== */
+/* LOGIN */
 
 async function login(){
 
-if(location.protocol==="file:"){
+if(location.protocol==='file:'){
 
 return toast(
-"Run the Node server with npm start."
+'Run the Node server with npm start.'
 );
 
 }
-
 
 try{
 
 let r=await fetch(
-"/api/login",
+'/api/login',
 {
-method:"POST",
+method:'POST',
 headers:{
-"Content-Type":
-"application/json"
+'Content-Type':'application/json'
 },
-credentials:"same-origin",
-
+credentials:'same-origin',
 body:JSON.stringify({
 
-username:
-$("lu").value.trim(),
+username:$('lu').value.trim(),
 
-password:
-$("lp").value
+password:$('lp').value
 
 })
-
 }
 );
 
-
 let j=await r.json();
-
 
 if(!r.ok){
 
 return toast(
-j.error==="INVALID_CREDENTIALS"
+j.error==='INVALID_CREDENTIALS'
 ?
-"Invalid username or password."
+'Invalid username or password.'
 :
-"Login failed."
+'Login failed.'
 );
 
 }
-
 
 me=j.user;
 
-enterUser();
-
-
-}catch(e){
-
-console.error(e);
-
-toast(
-"LOG SERVER CONNECTION ERROR"
-);
-
-}
-
-}
-
-
-/* =====================================================
-ENTER USER
-===================================================== */
-
-function enterUser(){
-
-$("auth").classList.add("hidden");
-$("home").classList.add("hidden");
-$("appDash").classList.add("hidden");
-$("userDash").classList.remove("hidden");
-$("topActions").classList.add("hidden");
-
-
 /*
-=====================================================
-SPECIAL LOG ACCOUNT
-=====================================================
+IMPORTANT:
+The server must return rank=ALPHA
+for the log account.
 */
 
 if(
-me.username.toLowerCase() === LOG_USERNAME
+me.username.toLowerCase()===
+LOG_ACCOUNT
+||
+me.rank===LOG_RANK
 ){
 
-renderLogsOnly();
+enterLog();
 
 return;
 
 }
 
+enterUser();
 
-/*
-NORMAL USER
-*/
+}catch(e){
 
-$("welcome").textContent=
-"WELCOME, "+
+toast(
+'Server connection error.'
+);
+
+}
+
+}
+
+
+/* NORMAL USER */
+
+function enterUser(){
+
+$('auth').classList.add('hidden');
+$('home').classList.add('hidden');
+$('appDash').classList.add('hidden');
+
+$('userDash').classList.remove('hidden');
+
+$('topActions').classList.add('hidden');
+
+$('welcome').textContent=
+'WELCOME, '+
 me.username.toUpperCase();
 
-
-$("profile").innerHTML=
+$('profile').innerHTML=
 
 '<span class="tag">'+
-"RANK: "+
+'RANK: '+
 esc(me.rank)+
 '</span>'+
 
 '<span class="tag">'+
-"UNIT: "+
+'UNIT: '+
 esc(me.unit)+
 '</span>'+
 
 '<span class="tag red">'+
-"CLEARANCE: "+
+'CLEARANCE: '+
 esc(me.clearance)+
 '</span>';
 
-
-if(
-adminRanks.includes(me.rank)
-){
-
-$("adminBtn")
-.classList.remove("hidden");
-
-}
-
+if(adminRanks.includes(me.rank))
+$('adminBtn').classList.remove('hidden');
 
 loadUser();
 
 }
 
 
-/* =====================================================
-LOG ACCOUNT ONLY
-===================================================== */
+/* LOG ACCOUNT */
 
-function renderLogsOnly(){
+function enterLog(){
 
 /*
-Hide every normal navigation element.
+Completely hide normal dashboard.
 */
 
-$("welcome").textContent=
-"LOG // AUDIT TERMINAL";
+$('auth').classList.add('hidden');
+$('home').classList.add('hidden');
+$('appDash').classList.add('hidden');
 
+$('userDash').classList.remove('hidden');
 
-$("profile").innerHTML=
-
-'<span class="tag amber">'+
-"RANK: "+
-esc(me.rank)+
-'</span>'+
-
-'<span class="tag red">'+
-"RESTRICTED LOG ACCESS"+
-'</span>';
-
-
-$("adminBtn")
-.classList.add("hidden");
-
-
-$("logBtn")
-.classList.remove("hidden");
+$('topActions').classList.add('hidden');
 
 
 /*
-Remove normal buttons from the tab bar.
+Only LOG section.
 */
 
-const tabs=
-$("userDash").querySelector(".tabs");
+$('welcome').textContent=
+'LOG // AUDIT CONTROL';
 
-tabs.innerHTML=`
+$('profile').innerHTML=
+
+'<span class="tag red">ALPHA</span>'+
+'<span class="tag">LOG ACCESS</span>'+
+'<span class="tag">RESTRICTED</span>';
+
+
+$('userDash').querySelector('.tabs').innerHTML=`
 
 <button
-class="btn amber"
+class="btn red"
 onclick="userTab('logs')">
 LOGS
 </button>
@@ -1554,245 +1246,232 @@ LOGOUT
 
 `;
 
+$('userContent').innerHTML=`
 
-renderLogs();
+<div class="panel">
+
+<div class="log-header">
+
+<div>
+
+<div class="kicker">
+ALPHA // AUDIT SYSTEM
+</div>
+
+<div class="log-title">
+SYSTEM LOGS
+</div>
+
+<div class="muted">
+Restricted audit records.
+</div>
+
+</div>
+
+<div>
+
+<button
+class="btn small"
+onclick="loadLogs()">
+REFRESH
+</button>
+
+</div>
+
+</div>
+
+<div id="logsContainer">
+<div class="empty">
+Loading logs...
+</div>
+</div>
+
+</div>
+
+`;
+
+loadLogs();
 
 }
 
 
-/* =====================================================
-LOAD USER
-===================================================== */
-
-async function loadUser(){
-
-let r=await fetch(
-"/api/dashboard",
-{
-credentials:"same-origin"
-}
-);
-
-if(!r.ok){
-
-return location.reload();
-
-}
-
-udata=await r.json();
-
-userTab("messages");
-
-}
-
-
-/* =====================================================
-USER TABS
-===================================================== */
+/* LOG TAB */
 
 function userTab(t){
 
 if(
 me &&
-me.username.toLowerCase()==="log"
+(
+me.username.toLowerCase()===LOG_ACCOUNT||
+me.rank===LOG_RANK
+)
 ){
 
-if(t==="logs")
-renderLogs();
+if(t==='logs')
+loadLogs();
 
 return;
 
 }
 
-
-if(t==="messages")
+if(t==='messages')
 renderMessages();
 
-if(t==="reports")
+if(t==='reports')
 renderReports();
 
-if(t==="sector")
+if(t==='sector')
 renderSector();
 
-if(t==="profile")
+if(t==='profile')
 renderProfile();
 
-if(t==="admin")
+if(t==='admin')
 renderAdmin();
 
 }
 
 
-/* =====================================================
-LOGS
-===================================================== */
+/* LOAD NORMAL */
 
-async function renderLogs(){
+async function loadUser(){
 
-$("userContent").innerHTML=
-
-'<div class="panel">'+
-
-'<div style="display:flex;justify-content:space-between;align-items:center">'+
-
-'<div>'+
-'<div class="kicker">RESTRICTED AUDIT SYSTEM</div>'+
-'<h2>LOGS</h2>'+
-'</div>'+
-
-'<span class="tag red">LOG ACCOUNT ONLY</span>'+
-
-'</div>'+
-
-'<div id="logsLoading" class="empty">'+
-"Loading audit logs..."+
-'</div>'+
-
-'</div>';
-
-
-try{
-
-const r=await fetch(
-"/api/command/audit",
+let r=await fetch(
+'/api/dashboard',
 {
-credentials:"same-origin"
+credentials:'same-origin'
 }
 );
 
+if(!r.ok)
+return location.reload();
 
-const j=await r.json();
+udata=await r.json();
 
+userTab('messages');
+
+}
+
+
+/* LOGS */
+
+async function loadLogs(){
+
+const box=$('logsContainer');
+
+if(!box)
+return;
+
+box.innerHTML=
+'<div class="empty">Loading logs...</div>';
+
+try{
+
+/*
+This is the ONLY endpoint used
+for the LOG account.
+*/
+
+let r=await fetch(
+'/api/command/audit',
+{
+credentials:'same-origin',
+cache:'no-store'
+}
+);
+
+let j=await r.json();
 
 if(!r.ok){
 
-$("logsLoading").innerHTML=
-'<span class="danger">LOG ACCESS ERROR</span>';
+box.innerHTML=
+'<div class="notice">'+
+'LOG ACCESS ERROR: '+
+esc(j.error||'FORBIDDEN')+
+'</div>';
 
 return;
 
 }
 
-
-const logs=j.logs||[];
-
+let logs=j.logs||[];
 
 if(!logs.length){
 
-$("logsLoading").innerHTML=
+box.innerHTML=
 '<div class="empty">No audit logs available.</div>';
 
 return;
 
 }
 
+box.innerHTML=logs.map(
+x=>`
 
-$("logsLoading").outerHTML=
+<div class="log-row">
 
-'<div class="log-table">'+
+<div class="log-meta">
 
-'<table class="table">'+
+<span class="tag amber">
+#${esc(x.id)}
+</span>
 
-'<tr>'+
-'<th>ID</th>'+
-'<th>TIME</th>'+
-'<th>ACTOR</th>'+
-'<th>ACTION</th>'+
-'<th>IP</th>'+
-'<th>CLIENT ID / DETAILS</th>'+
-'</tr>'+
-
-logs.map(x=>{
-
-let details=
-String(x.details||"");
-
-let clientMatch=
-details.match(
-/client[_ -]?id=([^;]+)/i
-);
-
-let clientId=
-clientMatch
-?
-clientMatch[1]
-:
-"ERROR";
-
-
-return `
-
-<tr>
-
-<td class="mono">
-${esc(x.id)}
-</td>
-
-<td class="mono">
+<span class="muted mono">
 ${esc(x.created_at)}
-</td>
+</span>
 
-<td>
-${esc(x.actor_label)}
-</td>
-
-<td class="log-action">
+<span class="log-action">
 ${esc(x.action)}
-</td>
+</span>
 
-<td class="log-ip">
-${esc(x.ip || "ERROR")}
-</td>
-
-<td>
-
-<div class="client-id">
-CLIENT ID:
-${esc(clientId)}
 </div>
 
-<div style="margin-top:6px">
-${esc(details)}
+
+<div class="log-details">
+
+ACTOR:
+${esc(x.actor_label||'ERROR')}
+
+<br>
+
+IP:
+${esc(x.ip||'ERROR')}
+
+<br>
+
+DETAILS:
+${esc(x.details||'ERROR')}
+
 </div>
 
-</td>
+</div>
 
-</tr>
+`
+).join('');
 
-`;
+}catch(e){
 
-}).join("")+
-
-'</table>'+
-
+box.innerHTML=
+'<div class="notice">'+
+'LOG SERVER CONNECTION ERROR'+
 '</div>';
 
-
-}catch(error){
-
-console.error(error);
-
-$("logsLoading").innerHTML=
-'<span class="danger">LOG SERVER CONNECTION ERROR</span>';
-
 }
 
 }
 
 
-/* =====================================================
-MESSAGES
-===================================================== */
+/* NORMAL MESSAGES */
 
 function renderMessages(){
 
 let a=udata.messages||[];
 
-$("userContent").innerHTML=
+$('userContent').innerHTML=
 
 '<div class="panel">'+
-'<h2>MESSAGES '+
-'<span class="tag green">'+
+
+'<h2>MESSAGES <span class="tag green">'+
 a.length+
 '</span></h2>'+
 
@@ -1801,10 +1480,10 @@ a.length
 
 ?
 
-a.map(m=>
-
+a.map(
+m=>
 '<div class="card message '+
-(!m.read?"unread":"")+
+(!m.read?'unread':'')+
 '">'+
 
 '<b>'+
@@ -1813,9 +1492,9 @@ esc(m.subject)+
 
 '<div class="muted mono">'+
 esc(m.sender_label)+
-" // "+
+' // '+
 esc(m.created_at)+
-" // "+
+' // '+
 esc(m.type)+
 '</div>'+
 
@@ -1824,8 +1503,7 @@ esc(m.body)+
 '</p>'+
 
 '</div>'
-
-).join("")
+).join('')
 
 :
 
@@ -1838,21 +1516,24 @@ esc(m.body)+
 }
 
 
-/* =====================================================
-REPORTS
-===================================================== */
+/* REPORTS */
 
 function renderReports(){
 
 let a=udata.reports||[];
 
-$("userContent").innerHTML=
+$('userContent').innerHTML=
 
 '<div class="panel">'+
 
 '<div style="display:flex;justify-content:space-between">'+
+
 '<h2>INTELLIGENCE REPORTS</h2>'+
-'<span class="tag red">AUTHORIZED ONLY</span>'+
+
+'<span class="tag red">
+AUTHORIZED ONLY
+</span>'+
+
 '</div>'+
 
 (
@@ -1870,8 +1551,8 @@ a.length
 '<th></th>'+
 '</tr>'+
 
-a.map(x=>
-
+a.map(
+x=>
 '<tr>'+
 
 '<td class="mono">IR-'+
@@ -1882,31 +1563,28 @@ x.id+
 esc(x.title)+
 '</td>'+
 
-'<td>'+
-'<span class="tag red">'+
+'<td><span class="tag red">'+
 esc(x.classification)+
-'</span>'+
-'</td>'+
+'</span></td>'+
 
 '<td>'+
 esc(x.created_at)+
 '</td>'+
 
-'<td>'+
-'<button class="btn small" onclick="viewPdf('+
+'<td><button class="btn small" onclick="viewPdf('+
 x.id+
-')">VIEW PDF</button>'+
-'</td>'+
+')">VIEW PDF</button></td>'+
 
 '</tr>'
-
-).join("")+
+).join('')+
 
 '</table>'
 
 :
 
-'<div class="empty">No reports available for your clearance.</div>'
+'<div class="empty">
+No reports available for your clearance.
+</div>'
 
 )+
 
@@ -1915,29 +1593,18 @@ x.id+
 }
 
 
-/* =====================================================
-SECTOR
-===================================================== */
+/* SECTOR */
 
 async function renderSector(){
 
-let r=await fetch(
-"/api/sector",
-{
-credentials:"same-origin"
-}
-);
+let r=await fetch('/api/sector');
 
 if(!r.ok)
-return toast(
-"Unable to load directory."
-);
-
+return toast('Unable to load directory.');
 
 let a=await r.json();
 
-
-$("userContent").innerHTML=
+$('userContent').innerHTML=
 
 '<div class="panel">'+
 
@@ -1953,8 +1620,8 @@ $("userContent").innerHTML=
 '<th>CLEARANCE</th>'+
 '</tr>'+
 
-a.map(x=>
-
+a.map(
+x=>
 '<tr>'+
 
 '<td class="mono">'+
@@ -1978,8 +1645,7 @@ esc(x.clearance)+
 '</td>'+
 
 '</tr>'
-
-).join("")+
+).join('')+
 
 '</table>'+
 
@@ -1988,13 +1654,11 @@ esc(x.clearance)+
 }
 
 
-/* =====================================================
-PROFILE
-===================================================== */
+/* PROFILE */
 
 function renderProfile(){
 
-$("userContent").innerHTML=
+$('userContent').innerHTML=
 
 '<div class="panel">'+
 
@@ -2004,23 +1668,17 @@ $("userContent").innerHTML=
 
 '<div class="card">'+
 '<div class="muted">USERNAME / CODE</div>'+
-'<b>'+
-esc(me.username)+
-'</b>'+
+'<b>'+esc(me.username)+'</b>'+
 '</div>'+
 
 '<div class="card">'+
 '<div class="muted">RANK</div>'+
-'<b>'+
-esc(me.rank)+
-'</b>'+
+'<b>'+esc(me.rank)+'</b>'+
 '</div>'+
 
 '<div class="card">'+
 '<div class="muted">UNIT</div>'+
-'<b>'+
-esc(me.unit)+
-'</b>'+
+'<b>'+esc(me.unit)+'</b>'+
 '</div>'+
 
 '</div>'+
@@ -2030,9 +1688,7 @@ esc(me.unit)+
 }
 
 
-/* =====================================================
-ADMIN
-===================================================== */
+/* ADMIN */
 
 async function renderAdmin(){
 
@@ -2041,39 +1697,22 @@ ra,
 ru
 ]=await Promise.all([
 
-fetch(
-"/api/admin/applications",
-{
-credentials:"same-origin"
-}
-),
+fetch('/api/admin/applications'),
 
-fetch(
-"/api/admin/users",
-{
-credentials:"same-origin"
-}
-)
+fetch('/api/admin/users')
 
 ]);
 
-
-if(!ra.ok||!ru.ok){
-
-return toast(
-"Not authorized."
-);
-
-}
-
+if(!ra.ok||!ru.ok)
+return toast('Not authorized.');
 
 let apps=await ra.json();
 let users=await ru.json();
 
-
 let h=
 
 '<div class="panel">'+
+
 '<h2>APPLICATION CONTROL</h2>'+
 
 (
@@ -2085,127 +1724,67 @@ apps.length
 
 '<tr>'+
 '<th>ID</th>'+
-'<th>IDENTITY</th>'+
-'<th>DISCORD</th>'+
+'<th>DISCORD ID</th>'+
+'<th>IN-GAME NAME</th>'+
 '<th>UNIT</th>'+
 '<th>STATUS</th>'+
 '<th>ACTION</th>'+
 '</tr>'+
 
-apps.map(a=>`
+apps.map(
+a=>
+'<tr>'+
 
-<tr>
+'<td>'+
+esc(a.id)+
+'</td>'+
 
-<td>
+'<td class="mono">'+
+esc(a.discord_id||'ERROR')+
+'</td>'+
 
-<div class="mono">
-#${esc(a.id)}
-</div>
+'<td><b>'+
+esc(a.name)+
+'</b><div class="muted">'+
+esc(a.experience)+
+'</div></td>'+
 
-<button
-class="btn small"
-onclick="copyText('${esc(a.id)}')">
-COPY
-</button>
+'<td>'+
+esc(a.unit)+
+'</td>'+
 
-</td>
+'<td>'+
+esc(a.status)+
+'</td>'+
 
+'<td>'+
 
-<td>
-
-<b>
-${esc(a.name)}
-</b>
-
-<div class="muted">
-${esc(a.experience)}
-</div>
-
-</td>
-
-
-<td>
-
-<div class="client-id">
-
-CLIENT ID:
-${
-a.client_id
-?
-esc(a.client_id)
-:
-'<span class="error-id">ERROR</span>'
-}
-
-</div>
-
-
-<div class="muted">
-
-USERNAME:
-${
-a.discord_username
-?
-esc(a.discord_username)
-:
-'<span class="error-id">ERROR</span>'
-}
-
-</div>
-
-</td>
-
-
-<td>
-${esc(a.unit)}
-</td>
-
-
-<td>
-${esc(a.status)}
-</td>
-
-
-<td>
-
-${
-a.status==="PENDING"
+(
+a.status==='PENDING'
 
 ?
 
-`
-
-<button
-class="btn green small"
-onclick="approve(${a.id})">
-ACCEPT AS AGENT
-</button>
-
-<button
-class="btn small"
-onclick="reject(${a.id})">
-REJECT
-</button>
-
-`
+'<button class="btn green small" onclick="approve('+a.id+')">ACCEPT AS AGENT</button> '+
+'<button class="btn small" onclick="reject('+a.id+')">REJECT</button>'
 
 :
 
-"—"
+'—'
 
-}
+)+
 
-</td>
+'</td>'+
 
-</tr>
-
-`).join("")+
+'</tr>'
+).join('')+
 
 '</table>'
 
 :
 
-'<div class="empty">No applications.</div>'
+'<div class="empty">
+No applications.
+</div>'
 
 )+
 
@@ -2215,6 +1794,7 @@ REJECT
 h+=
 
 '<div class="panel">'+
+
 '<h2>SECTOR TABLE</h2>'+
 
 '<table class="table">'+
@@ -2228,8 +1808,8 @@ h+=
 '<th>CREATED</th>'+
 '</tr>'+
 
-users.map(u=>
-
+users.map(
+u=>
 '<tr>'+
 
 '<td class="mono">'+
@@ -2257,8 +1837,7 @@ esc(u.created_at)+
 '</td>'+
 
 '</tr>'
-
-).join("")+
+).join('')+
 
 '</table>'+
 
@@ -2280,13 +1859,11 @@ h+=
 
 '<div class="field">'+
 '<label>TYPE</label>'+
-
 '<select id="tmType" class="input">'+
 '<option>MESSAGE</option>'+
 '<option>TASK</option>'+
 '<option>ASSIGNMENT</option>'+
 '</select>'+
-
 '</div>'+
 
 '</div>'+
@@ -2301,9 +1878,7 @@ h+=
 '<textarea id="tmBody" class="input" rows="5"></textarea>'+
 '</div>'+
 
-'<button class="btn red" onclick="sendMessage()">'+
-'SEND'+
-'</button>'+
+'<button class="btn red" onclick="sendMessage()">SEND</button>'+
 
 '</div>';
 
@@ -2321,16 +1896,12 @@ h+=
 
 '<div class="field">'+
 '<label>CLASSIFICATION</label>'+
-
 '<select id="rc" class="input">'+
-
 '<option>CONFIDENTIAL</option>'+
 '<option>SECRET</option>'+
 '<option>TOP SECRET</option>'+
 '<option>OMEGA</option>'+
-
 '</select>'+
-
 '</div>'+
 
 '<div class="field">'+
@@ -2338,14 +1909,14 @@ h+=
 '<input id="rf" type="file" accept="application/pdf" class="input">'+
 '</div>'+
 
-'<button class="btn red" onclick="uploadReport()">'+
-'REGISTER PDF REPORT'+
-'</button>'+
+'<button class="btn red" onclick="uploadReport()">
+REGISTER PDF REPORT
+</button>'+
 
 '</div>';
 
 
-if(me.rank==="COMMAND OF CIA"){
+if(me.rank==='COMMAND OF CIA'){
 
 h+=
 
@@ -2355,91 +1926,70 @@ h+=
 
 '<div class="cols">'+
 
-'<div class="field">'+
-'<label>USERNAME / CODE</label>'+
-'<input id="nu" class="input">'+
-'</div>'+
+'<div class="field"><label>USERNAME / CODE</label>'+
+'<input id="nu" class="input"></div>'+
 
-'<div class="field">'+
-'<label>IN-GAME NAME</label>'+
-'<input id="nin" class="input">'+
-'</div>'+
+'<div class="field"><label>IN-GAME NAME</label>'+
+'<input id="nin" class="input"></div>'+
 
-'<div class="field">'+
-'<label>PASSWORD</label>'+
-'<input id="np" class="input" type="password">'+
-'</div>'+
+'<div class="field"><label>PASSWORD</label>'+
+'<input id="np" class="input" type="password"></div>'+
 
-'<div class="field">'+
-'<label>RANK</label>'+
-
+'<div class="field"><label>RANK</label>'+
 '<select id="nr" class="input">'+
 '<option>AGENT</option>'+
 '<option>AGENT OFFICER</option>'+
 '<option>COMMAND OF CIA</option>'+
-'</select>'+
+'</select></div>'+
 
-'</div>'+
+'<div class="field"><label>UNIT</label>'+
+'<input id="nunit" class="input" value="Intelligence Operations"></div>'+
 
-'<div class="field">'+
-'<label>UNIT</label>'+
-'<input id="nunit" class="input" value="Intelligence Operations">'+
-'</div>'+
-
-'<div class="field">'+
-'<label>CLEARANCE</label>'+
-
+'<div class="field"><label>CLEARANCE</label>'+
 '<select id="nc" class="input">'+
 '<option>RESTRICTED</option>'+
 '<option>CONFIDENTIAL</option>'+
 '<option>SECRET</option>'+
 '<option>TOP SECRET</option>'+
 '<option>OMEGA</option>'+
-'</select>'+
+'</select></div>'+
 
 '</div>'+
 
-'</div>'+
-
-'<button class="btn red" onclick="createUser()">'+
-'CREATE ACCOUNT'+
-'</button>'+
+'<button class="btn red" onclick="createUser()">
+CREATE ACCOUNT
+</button>'+
 
 '</div>';
 
 }
 
 
-$("userContent").innerHTML=h;
+$('userContent').innerHTML=h;
 
 }
 
 
-/* =====================================================
-ADMIN ACTIONS
-===================================================== */
+/* APPROVE */
 
 async function approve(id){
 
 let r=await fetch(
-"/api/admin/application/"+id+"/approve",
+'/api/admin/application/'+
+id+
+'/approve',
 {
-method:"POST",
-credentials:"same-origin"
+method:'POST'
 }
 );
 
 let j=await r.json();
 
-
 if(!r.ok)
-return toast(
-"Could not approve."
-);
-
+return toast('Could not approve.');
 
 toast(
-"Approved. Username: "+
+'Approved. Username: '+
 j.username
 );
 
@@ -2448,46 +1998,44 @@ renderAdmin();
 }
 
 
+/* REJECT */
+
 async function reject(id){
 
 let r=await fetch(
-"/api/admin/application/"+id+"/reject",
+'/api/admin/application/'+
+id+
+'/reject',
 {
-method:"POST",
-credentials:"same-origin"
+method:'POST'
 }
 );
 
-
 if(!r.ok)
-return toast(
-"Could not reject."
-);
+return toast('Could not reject.');
 
-
-toast(
-"Application rejected."
-);
+toast('Application rejected.');
 
 renderAdmin();
 
 }
 
 
+/* MESSAGE */
+
 async function sendMessage(){
 
 let b={
 
-target:$("tmUser").value.trim(),
+target:$('tmUser').value.trim(),
 
-subject:$("tmSub").value.trim(),
+subject:$('tmSub').value.trim(),
 
-body:$("tmBody").value.trim(),
+body:$('tmBody').value.trim(),
 
-type:$("tmType").value
+type:$('tmType').value
 
 };
-
 
 if(
 !b.target||
@@ -2495,139 +2043,121 @@ if(
 !b.body
 )
 return toast(
-"Complete target, subject and message."
+'Complete target, subject and message.'
 );
 
-
 let r=await fetch(
-"/api/admin/message",
+'/api/admin/message',
 {
-method:"POST",
+method:'POST',
 headers:{
-"Content-Type":
-"application/json"
+'Content-Type':'application/json'
 },
-credentials:"same-origin",
 body:JSON.stringify(b)
 }
 );
-
 
 if(!r.ok){
 
 let j=await r.json();
 
 return toast(
-j.error==="USER_NOT_FOUND"
+j.error==='USER_NOT_FOUND'
 ?
-"Username not found."
+'Username not found.'
 :
-"Could not send."
+'Could not send.'
 );
 
 }
 
+toast('Message/task sent.');
 
-toast(
-"Message/task sent."
-);
-
-$("tmBody").value="";
+$('tmBody').value='';
 
 }
 
+
+/* CREATE USER */
 
 async function createUser(){
 
 let b={
 
-username:$("nu").value.trim(),
+username:$('nu').value.trim(),
 
-password:$("np").value,
+password:$('np').value,
 
-rank:$("nr").value,
+rank:$('nr').value,
 
-unit:$("nunit").value.trim(),
+unit:$('nunit').value.trim(),
 
-clearance:$("nc").value,
+clearance:$('nc').value,
 
-in_game_name:$("nin").value.trim()
+in_game_name:$('nin').value.trim()
 
 };
 
-
 let r=await fetch(
-"/api/admin/users",
+'/api/admin/users',
 {
-method:"POST",
+method:'POST',
 headers:{
-"Content-Type":
-"application/json"
+'Content-Type':'application/json'
 },
-credentials:"same-origin",
 body:JSON.stringify(b)
 }
 );
 
-
 if(!r.ok)
-return toast(
-"Could not create account."
-);
+return toast('Could not create account.');
 
-
-toast(
-"Account created."
-);
+toast('Account created.');
 
 renderAdmin();
 
 }
 
 
+/* REPORT */
+
 async function uploadReport(){
 
-let f=$("rf").files[0];
+let f=$('rf').files[0];
 
-let title=$("rt").value.trim();
-
+let title=$('rt').value.trim();
 
 if(!f||!title)
 return toast(
-"Enter title and select a PDF."
+'Enter title and select a PDF.'
 );
-
 
 let fd=new FormData();
 
-fd.append("title",title);
+fd.append('title',title);
 
 fd.append(
-"classification",
-$("rc").value
+'classification',
+$('rc').value
 );
 
-fd.append("pdf",f);
-
+fd.append('pdf',f);
 
 let r=await fetch(
-"/api/admin/reports",
+'/api/admin/reports',
 {
-method:"POST",
-credentials:"same-origin",
+method:'POST',
 body:fd
 }
 );
 
-
 if(!r.ok)
 return toast(
-"Could not register report."
+'Could not register report.'
 );
 
-
 toast(
-"PDF report registered."
+'PDF report registered.'
 );
 
 loadUser();
@@ -2635,71 +2165,41 @@ loadUser();
 }
 
 
-/* =====================================================
-COPY
-===================================================== */
-
-async function copyText(text){
-
-try{
-
-await navigator.clipboard.writeText(
-String(text)
-);
-
-toast(
-"Copied."
-);
-
-}catch{
-
-toast(
-"Copy failed."
-);
-
-}
-
-}
-
-
-/* =====================================================
-PDF
-===================================================== */
+/* PDF */
 
 function viewPdf(id){
 
-$("pdfFrame").src=
-"/api/reports/"+id;
+$('pdfFrame').src=
+'/api/reports/'+id;
 
-$("pdfModal")
-.classList.remove("hidden");
+$('pdfModal').classList.remove(
+'hidden'
+);
 
 }
-
 
 function closePdf(){
 
-$("pdfFrame").src="";
+$('pdfFrame').src='';
 
-$("pdfModal")
-.classList.add("hidden");
+$('pdfModal').classList.add(
+'hidden'
+);
 
 }
 
 
-/* =====================================================
-LOGOUT
-===================================================== */
+/* LOGOUT */
 
 async function logout(){
 
 try{
 
 await fetch(
-"/api/logout",
+'/api/logout',
 {
-method:"POST",
-credentials:"same-origin"
+method:'POST',
+credentials:'same-origin'
 }
 );
 
@@ -2710,138 +2210,122 @@ location.reload();
 }
 
 
-/* =====================================================
-AUTO SESSION
-===================================================== */
+/* INITIAL SESSION */
 
 fetch(
-"/api/me",
+'/api/me',
 {
-credentials:"same-origin"
+credentials:'same-origin',
+cache:'no-store'
 }
 )
+
 .then(r=>r.json())
+
 .then(j=>{
 
 if(j.user){
 
 me=j.user;
 
+/*
+Log account must never enter
+the normal dashboard.
+*/
+
+if(
+me.username.toLowerCase()===LOG_ACCOUNT||
+me.rank===LOG_RANK
+){
+
+enterLog();
+
+}else{
+
 enterUser();
+
+}
 
 return;
 
 }
 
-
 return fetch(
-"/api/application/me",
+'/api/application/me',
 {
-credentials:"same-origin"
+credentials:'same-origin'
 }
 );
 
 })
+
 .then(r=>{
 
-if(!r)return null;
+if(!r||!r.json)
+return null;
 
 return r.json();
 
 })
+
 .then(x=>{
 
 if(!x||!x.application)
 return;
 
-
 appdata=x;
 
-$("home").classList.add("hidden");
+$('home').classList.add('hidden');
 
-$("topActions").classList.add("hidden");
+$('topActions').classList.add('hidden');
 
-$("appDash").classList.remove("hidden");
+$('appDash').classList.remove('hidden');
 
-$("appNameTitle").textContent=
+$('appNameTitle').textContent=
 x.application.name;
 
-$("appStatus").innerHTML=
+$('appStatus').innerHTML=
 '<span class="tag amber">'+
 esc(x.application.status)+
 '</span>';
 
-$("appMeta").textContent=
-"Application #"+
+$('appMeta').textContent=
+'Application #'+
 x.application.id+
-" // "+
+' // '+
 x.application.unit;
 
-$("applicationIdBox").innerHTML=`
-
-<div class="card">
-
-<div class="muted">
-APPLICATION ID
-</div>
-
-<div class="copybox">
-
-<input
-id="applicationIdInput"
-class="input mono"
-readonly
-value="${esc(x.application.id)}"
->
-
-<button
-class="btn green"
-onclick="copyApplicationId()">
-COPY
-</button>
-
-</div>
-
-</div>
-
-`;
-
-appTab("messages");
+appTab('messages');
 
 })
-.catch(error=>{
 
-console.error(
-"AUTO SESSION ERROR:",
-error
-);
+.catch(()=>{
+
+/*
+Do not show LOG connection errors
+on the public homepage.
+*/
 
 });
 
 
-/* =====================================================
-LANGUAGE
-===================================================== */
+/* LANGUAGE */
 
 let lang=
-localStorage.getItem("cia_lang")||
-"en";
+localStorage.getItem('cia_lang')||
+'en';
 
 
 const I18N={
 
 en:{
-LOGIN:"LOGIN",
-APPLY:"APPLY",
-PDF_VIEWER:"CLASSIFIED PDF VIEWER",
-CLOSE:"CLOSE"
+LOGIN:'LOGIN',
+APPLY:'APPLY'
 },
 
 ar:{
-LOGIN:"تسجيل الدخول",
-APPLY:"التقديم",
-PDF_VIEWER:"عارض ملف PDF السري",
-CLOSE:"إغلاق"
+LOGIN:'تسجيل الدخول',
+APPLY:'التقديم'
 }
 
 };
@@ -2850,14 +2334,14 @@ CLOSE:"إغلاق"
 function setLang(next){
 
 lang=
-next==="ar"
+next==='ar'
 ?
-"ar"
+'ar'
 :
-"en";
+'en';
 
 localStorage.setItem(
-"cia_lang",
+'cia_lang',
 lang
 );
 
@@ -2865,28 +2349,36 @@ document.documentElement.lang=
 lang;
 
 document.documentElement.dir=
-lang==="ar"
+lang==='ar'
 ?
-"rtl"
+'rtl'
 :
-"ltr";
+'ltr';
 
 document.body.classList.toggle(
-"rtl",
-lang==="ar"
+'rtl',
+lang==='ar'
 );
 
-$("langEN")
-.classList.toggle(
-"active",
-lang==="en"
+$('langEN').classList.toggle(
+'active',
+lang==='en'
 );
 
-$("langAR")
-.classList.toggle(
-"active",
-lang==="ar"
+$('langAR').classList.toggle(
+'active',
+lang==='ar'
 );
+
+$('topActions')
+.querySelectorAll('button')[0]
+.textContent=
+I18N[lang].LOGIN;
+
+$('topActions')
+.querySelectorAll('button')[1]
+.textContent=
+I18N[lang].APPLY;
 
 }
 
