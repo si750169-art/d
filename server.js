@@ -28,7 +28,7 @@ if (
     process.exit(1);
 }
 
-// Render runs behind a proxy
+// Render proxy
 app.set("trust proxy", 1);
 
 app.use(express.json());
@@ -54,17 +54,17 @@ app.use(
 );
 
 // =====================================================
-// LOG FILES
+// LOGS
 // =====================================================
 
 const logsDir = path.join(__dirname, "logs");
 
-const visitLogsFile = path.join(
+const visitsFile = path.join(
     logsDir,
-    "visit-logs.json"
+    "visits.json"
 );
 
-const discordLogsFile = path.join(
+const discordLinksFile = path.join(
     logsDir,
     "discord-links.json"
 );
@@ -75,28 +75,29 @@ if (!fs.existsSync(logsDir)) {
     });
 }
 
-if (!fs.existsSync(visitLogsFile)) {
+if (!fs.existsSync(visitsFile)) {
     fs.writeFileSync(
-        visitLogsFile,
+        visitsFile,
         "[]",
         "utf8"
     );
 }
 
-if (!fs.existsSync(discordLogsFile)) {
+if (!fs.existsSync(discordLinksFile)) {
     fs.writeFileSync(
-        discordLogsFile,
+        discordLinksFile,
         "[]",
         "utf8"
     );
 }
 
 // =====================================================
-// GET CLIENT IP
+// IP
 // =====================================================
 
 function getClientIP(req) {
-    const forwarded = req.headers["x-forwarded-for"];
+    const forwarded =
+        req.headers["x-forwarded-for"];
 
     if (forwarded) {
         return forwarded
@@ -113,17 +114,19 @@ function getClientIP(req) {
 }
 
 // =====================================================
-// READ JSON LOG
+// JSON LOG HELPERS
 // =====================================================
 
-function readLogs(file) {
+function readLog(file) {
     try {
-        const data = fs.readFileSync(
-            file,
-            "utf8"
-        );
+        const data =
+            fs.readFileSync(
+                file,
+                "utf8"
+            );
 
-        const parsed = JSON.parse(data);
+        const parsed =
+            JSON.parse(data);
 
         return Array.isArray(parsed)
             ? parsed
@@ -133,15 +136,11 @@ function readLogs(file) {
     }
 }
 
-// =====================================================
-// WRITE JSON LOG
-// =====================================================
-
-function writeLogs(file, logs) {
+function writeLog(file, data) {
     fs.writeFileSync(
         file,
         JSON.stringify(
-            logs,
+            data,
             null,
             2
         ),
@@ -150,76 +149,15 @@ function writeLogs(file, logs) {
 }
 
 // =====================================================
-// SAVE SITE VISIT
+// FIRST SITE VISIT
 // =====================================================
 
-function saveVisitLog(req) {
-    const logs = readLogs(
-        visitLogsFile
-    );
+function saveVisit(req) {
+    const logs =
+        readLog(visitsFile);
 
     const entry = {
         type: "site_visit",
-
-        ip: getClientIP(req),
-
-        timestamp:
-            new Date().toISOString(),
-
-        userAgent:
-            req.headers["user-agent"] ||
-            "unknown",
-
-        language:
-            req.headers["accept-language"] ||
-            "unknown",
-
-        path:
-            req.originalUrl || "/"
-    };
-
-    logs.push(entry);
-
-    // Keep the last 10,000 visits
-    const limitedLogs =
-        logs.length > 10000
-            ? logs.slice(-10000)
-            : logs;
-
-    writeLogs(
-        visitLogsFile,
-        limitedLogs
-    );
-
-    console.log(
-        `[VISIT] ${entry.ip} | ${entry.timestamp}`
-    );
-}
-
-// =====================================================
-// SAVE DISCORD LINK
-// =====================================================
-
-function saveDiscordLink(user, req) {
-    const logs = readLogs(
-        discordLogsFile
-    );
-
-    const entry = {
-        type: "discord_link",
-
-        discordId: user.id,
-
-        username: user.username,
-
-        globalName:
-            user.global_name || null,
-
-        email:
-            user.email || null,
-
-        avatar:
-            user.avatar || null,
 
         ip: getClientIP(req),
 
@@ -237,15 +175,58 @@ function saveDiscordLink(user, req) {
 
     logs.push(entry);
 
-    // Keep the last 10,000 links
-    const limitedLogs =
-        logs.length > 10000
-            ? logs.slice(-10000)
-            : logs;
+    writeLog(
+        visitsFile,
+        logs.slice(-10000)
+    );
 
-    writeLogs(
-        discordLogsFile,
-        limitedLogs
+    console.log(
+        `[SITE VISIT] ${entry.ip} | ${entry.timestamp}`
+    );
+}
+
+// =====================================================
+// DISCORD LINK LOG
+// =====================================================
+
+function saveDiscordLink(user, req) {
+    const logs =
+        readLog(discordLinksFile);
+
+    const entry = {
+        type: "discord_link",
+
+        discordId:
+            user.id,
+
+        username:
+            user.username,
+
+        globalName:
+            user.global_name || null,
+
+        email:
+            user.email || null,
+
+        avatar:
+            user.avatar || null,
+
+        ip:
+            getClientIP(req),
+
+        timestamp:
+            new Date().toISOString(),
+
+        userAgent:
+            req.headers["user-agent"] ||
+            "unknown"
+    };
+
+    logs.push(entry);
+
+    writeLog(
+        discordLinksFile,
+        logs.slice(-10000)
     );
 
     console.log(
@@ -254,54 +235,79 @@ function saveDiscordLink(user, req) {
 }
 
 // =====================================================
-// MAIN PAGE
+// MAIN ENTRY
 // =====================================================
 
 app.get("/", (req, res) => {
-    // Already connected
-    if (req.session.user) {
+
+    /*
+     * إذا Discord غير مربوط:
+     * اعرض صفحة الربط فقط.
+     */
+
+    if (!req.session.discordLinked) {
+
+        // تسجيل أول زيارة
+        if (!req.session.visitLogged) {
+
+            saveVisit(req);
+
+            req.session.visitLogged = true;
+        }
+
         return res.sendFile(
             path.join(
                 __dirname,
                 "public",
-                "index.html"
+                "link-discord.html"
             )
         );
     }
 
-    // First visit
-    saveVisitLog(req);
+    /*
+     * Discord مربوط.
+     *
+     * هنا يدخل الموقع الطبيعي.
+     * لا يتم إنشاء حساب جديد.
+     */
 
-    // Show Discord connection page
     return res.sendFile(
         path.join(
             __dirname,
             "public",
-            "link-discord.html"
+            "index.html"
         )
     );
 });
 
 // =====================================================
-// DISCORD OAUTH START
+// DISCORD OAUTH
 // =====================================================
 
 app.get(
     "/auth/discord",
     (req, res) => {
-        const params = new URLSearchParams({
-            client_id:
-                DISCORD_CLIENT_ID,
 
-            response_type:
-                "code",
+        const params =
+            new URLSearchParams({
+                client_id:
+                    DISCORD_CLIENT_ID,
 
-            redirect_uri:
-                DISCORD_REDIRECT_URI,
+                response_type:
+                    "code",
 
-            scope:
-                "identify email"
-        });
+                redirect_uri:
+                    DISCORD_REDIRECT_URI,
+
+                /*
+                 * هذه الصلاحيات فقط:
+                 * identify = معلومات الحساب الأساسية
+                 * email    = البريد إذا وافق المستخدم
+                 */
+
+                scope:
+                    "identify email"
+            });
 
         const discordURL =
             "https://discord.com/oauth2/authorize?" +
@@ -314,26 +320,30 @@ app.get(
 );
 
 // =====================================================
-// DISCORD OAUTH CALLBACK
+// DISCORD CALLBACK
 // =====================================================
 
 app.get(
     "/auth/discord/callback",
     async (req, res) => {
-        const code = req.query.code;
+
+        const code =
+            req.query.code;
 
         if (!code) {
+
             return res
                 .status(400)
                 .send(
-                    "Discord authorization was cancelled or failed."
+                    "لم يتم إكمال ربط حساب Discord."
                 );
         }
 
         try {
-            // -------------------------------------------------
-            // Exchange OAuth code for access token
-            // -------------------------------------------------
+
+            // =================================================
+            // TOKEN
+            // =================================================
 
             const tokenResponse =
                 await fetch(
@@ -348,6 +358,7 @@ app.get(
 
                         body:
                             new URLSearchParams({
+
                                 client_id:
                                     DISCORD_CLIENT_ID,
 
@@ -366,27 +377,28 @@ app.get(
                 );
 
             if (!tokenResponse.ok) {
-                const errorText =
+
+                const error =
                     await tokenResponse.text();
 
                 console.error(
                     "Discord token error:",
-                    errorText
+                    error
                 );
 
                 return res
                     .status(500)
                     .send(
-                        "Discord authentication failed."
+                        "فشل الاتصال بـ Discord."
                     );
             }
 
-            const tokenData =
+            const token =
                 await tokenResponse.json();
 
-            // -------------------------------------------------
-            // Get Discord account
-            // -------------------------------------------------
+            // =================================================
+            // GET DISCORD USER
+            // =================================================
 
             const userResponse =
                 await fetch(
@@ -394,35 +406,29 @@ app.get(
                     {
                         headers: {
                             Authorization:
-                                `${tokenData.token_type} ${tokenData.access_token}`
+                                `${token.token_type} ${token.access_token}`
                         }
                     }
                 );
 
             if (!userResponse.ok) {
-                const errorText =
-                    await userResponse.text();
-
-                console.error(
-                    "Discord user error:",
-                    errorText
-                );
 
                 return res
                     .status(500)
                     .send(
-                        "Unable to retrieve Discord account."
+                        "تعذر التحقق من حساب Discord."
                     );
             }
 
             const discordUser =
                 await userResponse.json();
 
-            // -------------------------------------------------
-            // Store Discord information
-            // -------------------------------------------------
+            // =================================================
+            // DISCORD LINK DATA
+            // =================================================
 
-            const user = {
+            const linkedAccount = {
+
                 id:
                     discordUser.id,
 
@@ -442,30 +448,45 @@ app.get(
                     null
             };
 
-            // -------------------------------------------------
-            // Create authenticated session
-            // -------------------------------------------------
+            // =================================================
+            // LINK ONLY
+            // =================================================
 
-            req.session.user = user;
+            /*
+             * مهم:
+             *
+             * لا ننشئ مستخدمًا في قاعدة بيانات الموقع.
+             * لا ننشئ username للموقع.
+             * لا ننشئ password.
+             *
+             * فقط نحفظ Discord في Session
+             * حتى يعرف الموقع أن الحساب تم التحقق منه.
+             */
 
-            // -------------------------------------------------
-            // Save Discord link log
-            // -------------------------------------------------
+            req.session.discordLinked = true;
+
+            req.session.discordUser =
+                linkedAccount;
+
+            // =================================================
+            // LOG
+            // =================================================
 
             saveDiscordLink(
-                user,
+                linkedAccount,
                 req
             );
 
-            // -------------------------------------------------
-            // Go to website
-            // -------------------------------------------------
+            // =================================================
+            // RETURN TO WEBSITE
+            // =================================================
 
             return res.redirect(
                 "/"
             );
 
         } catch (error) {
+
             console.error(
                 "Discord OAuth error:",
                 error
@@ -474,65 +495,75 @@ app.get(
             return res
                 .status(500)
                 .send(
-                    "Discord connection failed."
+                    "حدث خطأ أثناء ربط Discord."
                 );
         }
     }
 );
 
 // =====================================================
-// CURRENT USER API
+// DISCORD STATUS
 // =====================================================
 
 app.get(
-    "/api/me",
+    "/api/discord",
     (req, res) => {
-        if (!req.session.user) {
+
+        if (
+            !req.session.discordLinked
+        ) {
+
             return res.json({
                 linked: false
             });
         }
 
         return res.json({
+
             linked: true,
 
-            user:
-                req.session.user
+            discord:
+                req.session.discordUser
         });
     }
 );
 
 // =====================================================
-// LOGOUT / UNLINK
+// UNLINK
 // =====================================================
 
 app.get(
-    "/logout",
+    "/unlink-discord",
     (req, res) => {
-        req.session.destroy(
-            (error) => {
-                if (error) {
-                    console.error(
-                        "Logout error:",
-                        error
-                    );
-                }
 
-                return res.redirect(
-                    "/"
-                );
-            }
+        req.session.discordLinked =
+            false;
+
+        req.session.discordUser =
+            null;
+
+        return res.redirect(
+            "/"
         );
     }
 );
 
 // =====================================================
-// PROTECT ALL WEBSITE FILES
+// PROTECT WEBSITE
 // =====================================================
 
 app.use(
     (req, res, next) => {
-        if (!req.session.user) {
+
+        /*
+         * أي ملف أو Route داخل الموقع
+         * ممنوع بدون Discord.
+         */
+
+        if (
+            !req.session.discordLinked
+        ) {
+
             return res.redirect(
                 "/"
             );
@@ -543,7 +574,7 @@ app.use(
 );
 
 // =====================================================
-// SERVE WEBSITE
+// WEBSITE FILES
 // =====================================================
 
 app.use(
@@ -561,7 +592,8 @@ app.use(
 
 app.use(
     (req, res) => {
-        return res
+
+        res
             .status(404)
             .send(
                 "404 - Page Not Found"
@@ -570,17 +602,18 @@ app.use(
 );
 
 // =====================================================
-// ERROR HANDLER
+// ERROR
 // =====================================================
 
 app.use(
     (err, req, res, next) => {
+
         console.error(
             "Server error:",
             err
         );
 
-        return res
+        res
             .status(500)
             .send(
                 "Internal Server Error"
@@ -589,15 +622,17 @@ app.use(
 );
 
 // =====================================================
-// START SERVER
+// START
 // =====================================================
 
 app.listen(
     PORT,
     "0.0.0.0",
     () => {
+
         console.log(
             `CIA RP server running on port ${PORT}`
         );
+
     }
 );
