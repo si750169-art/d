@@ -95,24 +95,31 @@ CREATE TABLE IF NOT EXISTS audit (
 // DATABASE MIGRATION
 // =====================================================
 
-function columnExists(table, column) {
+function ensureColumn(table, column, definition) {
     const columns = db
         .prepare(`PRAGMA table_info(${table})`)
         .all();
 
-    return columns.some(
-        (item) => item.name === column
+    const exists = columns.some(
+        c => c.name === column
     );
+
+    if (!exists) {
+        db.exec(
+            `ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`
+        );
+
+        console.log(
+            `DATABASE MIGRATION: added ${table}.${column}`
+        );
+    }
 }
 
-if (!columnExists("applications", "discord_id")) {
-    db.exec(`
-        ALTER TABLE applications
-        ADD COLUMN discord_id TEXT
-    `);
-
-    console.log("Database migration: discord_id added.");
-}
+ensureColumn(
+    "applications",
+    "discord_id",
+    "TEXT"
+);
 
 // =====================================================
 // UPLOADS
@@ -130,28 +137,20 @@ if (!fs.existsSync(uploads)) {
 // SESSION
 // =====================================================
 
-const sessionSecret =
-    process.env.SESSION_SECRET ||
-    "CHANGE_THIS_SESSION_SECRET_TO_A_LONG_RANDOM_VALUE_2026";
-
 app.use(
     session({
-        secret: sessionSecret,
+        secret:
+            process.env.SESSION_SECRET ||
+            "CHANGE_THIS_TO_A_LONG_RANDOM_SECRET_2026",
 
         resave: false,
-
         saveUninitialized: false,
-
-        rolling: true,
 
         cookie: {
             httpOnly: true,
-
             secure:
                 process.env.NODE_ENV === "production",
-
             sameSite: "lax",
-
             maxAge:
                 1000 *
                 60 *
@@ -187,7 +186,8 @@ function getClientIP(req) {
     }
 
     return String(
-        req.socket.remoteAddress || "unknown"
+        req.socket.remoteAddress ||
+        "unknown"
     )
         .trim()
         .replace("::ffff:", "");
@@ -203,16 +203,16 @@ app.use((req, res, next) => {
 // =====================================================
 
 app.use((req, res, next) => {
-    const raw = req.headers.cookie || "";
+    const raw =
+        req.headers.cookie || "";
 
     req.cookies = {};
 
-    raw.split(";").forEach((item) => {
-        const index = item.indexOf("=");
+    raw.split(";").forEach(item => {
+        const index =
+            item.indexOf("=");
 
-        if (index <= 0) {
-            return;
-        }
+        if (index <= 0) return;
 
         const key =
             item.slice(0, index).trim();
@@ -238,11 +238,9 @@ app.use((req, res, next) => {
 const RANKS = [
     "AGENT",
     "AGENT OFFICER",
-    "COMMAND OF CIA"
+    "COMMAND OF CIA",
+    "ALPHA"
 ];
-
-// ALPHA IS INTENTIONALLY NOT HERE.
-// It cannot be created from the normal admin panel.
 
 const ADMIN = [
     "AGENT OFFICER",
@@ -253,9 +251,10 @@ const COMMAND = [
     "COMMAND OF CIA"
 ];
 
+// ALPHA IS NOT ADMIN.
+// ALPHA IS A PRIVATE LOG ROLE.
+
 const ALPHA_USERNAME = "log";
-const ALPHA_PASSWORD = "log_1";
-const ALPHA_RANK = "ALPHA";
 
 const clearanceRank = {
     RESTRICTED: 1,
@@ -273,21 +272,25 @@ const upload = multer({
     dest: uploads,
 
     limits: {
-        fileSize: 20 * 1024 * 1024
+        fileSize:
+            20 * 1024 * 1024
     },
 
-    fileFilter: (req, file, cb) => {
-        if (
-            file.mimetype !==
-            "application/pdf"
-        ) {
-            return cb(
-                new Error("ONLY_PDF_ALLOWED")
-            );
-        }
+    fileFilter:
+        (req, file, cb) => {
+            if (
+                file.mimetype !==
+                "application/pdf"
+            ) {
+                return cb(
+                    new Error(
+                        "ONLY_PDF_ALLOWED"
+                    )
+                );
+            }
 
-        cb(null, true);
-    }
+            cb(null, true);
+        }
 });
 
 // =====================================================
@@ -302,9 +305,7 @@ function ip(req) {
 }
 
 function safeUser(user) {
-    if (!user) {
-        return null;
-    }
+    if (!user) return null;
 
     const copy = {
         ...user
@@ -315,11 +316,31 @@ function safeUser(user) {
     return copy;
 }
 
+function isAlpha(user) {
+    return !!(
+        user &&
+        user.username === ALPHA_USERNAME &&
+        user.rank === "ALPHA"
+    );
+}
+
+function isCommand(user) {
+    return !!(
+        user &&
+        user.username === "code_alpha" &&
+        user.rank === "COMMAND OF CIA"
+    );
+}
+
 function cleanUsername(name, id) {
-    const base = String(name)
-        .toLowerCase()
-        .replace(/[^a-z0-9_-]/g, "")
-        .slice(0, 18);
+    const base =
+        String(name)
+            .toLowerCase()
+            .replace(
+                /[^a-z0-9_-]/g,
+                ""
+            )
+            .slice(0, 18);
 
     return (
         (base || "agent") +
@@ -337,10 +358,17 @@ function randomPassword() {
     );
 }
 
-function canView(user, classification) {
+function canView(
+    user,
+    classification
+) {
     return (
-        (clearanceRank[user.clearance] || 0) >=
-        (clearanceRank[classification] || 99)
+        (clearanceRank[
+            user.clearance
+        ] || 0) >=
+        (clearanceRank[
+            classification
+        ] || 99)
     );
 }
 
@@ -385,82 +413,21 @@ function audit(
 }
 
 // =====================================================
-// ALPHA ACCOUNT
-// ONLY CREATED FROM CODE
+// CREATE FIXED ACCOUNTS
 // =====================================================
 
-function ensureAlpha() {
-    const existing = db
-        .prepare(
+function ensureSystemAccounts() {
+
+    // ================================================
+    // COMMAND ACCOUNT
+    // ================================================
+
+    const command =
+        db.prepare(
             "SELECT * FROM users WHERE username = ?"
-        )
-        .get(ALPHA_USERNAME);
+        ).get("code_alpha");
 
-    if (!existing) {
-        const passwordHash =
-            bcrypt.hashSync(
-                ALPHA_PASSWORD,
-                12
-            );
-
-        db.prepare(`
-            INSERT INTO users
-            (
-                username,
-                password,
-                rank,
-                unit,
-                clearance,
-                in_game_name
-            )
-            VALUES (?, ?, ?, ?, ?, ?)
-        `).run(
-            ALPHA_USERNAME,
-            passwordHash,
-            ALPHA_RANK,
-            "CIA LOGISTICS",
-            "OMEGA",
-            "ALPHA"
-        );
-
-        console.log(
-            "ALPHA ACCOUNT CREATED"
-        );
-    } else {
-        // Force the account to remain ALPHA.
-        // This prevents an admin from accidentally
-        // changing it through another route.
-
-        db.prepare(`
-            UPDATE users
-            SET
-                rank = ?,
-                unit = ?,
-                clearance = ?,
-                in_game_name = ?
-            WHERE username = ?
-        `).run(
-            ALPHA_RANK,
-            "CIA LOGISTICS",
-            "OMEGA",
-            "ALPHA",
-            ALPHA_USERNAME
-        );
-    }
-}
-
-// =====================================================
-// COMMAND ACCOUNT
-// =====================================================
-
-function ensureCommand() {
-    const existing = db
-        .prepare(
-            "SELECT * FROM users WHERE username = ?"
-        )
-        .get("code_alpha");
-
-    if (!existing) {
+    if (!command) {
         const passwordHash =
             bcrypt.hashSync(
                 "cia command91",
@@ -488,19 +455,85 @@ function ensureCommand() {
         );
 
         console.log(
-            "COMMAND ACCOUNT CREATED: code_alpha"
+            "COMMAND ACCOUNT CREATED"
+        );
+    }
+
+    // ================================================
+    // ALPHA LOG ACCOUNT
+    // ================================================
+
+    const alpha =
+        db.prepare(
+            "SELECT * FROM users WHERE username = ?"
+        ).get(ALPHA_USERNAME);
+
+    if (!alpha) {
+
+        const passwordHash =
+            bcrypt.hashSync(
+                "log_1",
+                12
+            );
+
+        db.prepare(`
+            INSERT INTO users
+            (
+                username,
+                password,
+                rank,
+                unit,
+                clearance,
+                in_game_name
+            )
+            VALUES (?, ?, ?, ?, ?, ?)
+        `).run(
+            ALPHA_USERNAME,
+            passwordHash,
+            "ALPHA",
+            "ALPHA",
+            "OMEGA",
+            "ALPHA"
+        );
+
+        console.log(
+            "ALPHA LOG ACCOUNT CREATED: log"
+        );
+    } else {
+
+        /*
+         * Keep ALPHA protected.
+         * Even if somebody changes the database,
+         * the account is forced back to ALPHA.
+         */
+
+        db.prepare(`
+            UPDATE users
+            SET
+                rank = ?,
+                unit = ?,
+                clearance = ?
+            WHERE username = ?
+        `).run(
+            "ALPHA",
+            "ALPHA",
+            "OMEGA",
+            ALPHA_USERNAME
         );
     }
 }
 
-ensureAlpha();
-ensureCommand();
+ensureSystemAccounts();
 
 // =====================================================
-// AUTH
+// MIDDLEWARE
 // =====================================================
 
-function auth(req, res, next) {
+function auth(
+    req,
+    res,
+    next
+) {
     if (!req.session.user) {
         return res.status(401).json({
             error: "AUTH_REQUIRED"
@@ -510,46 +543,19 @@ function auth(req, res, next) {
     next();
 }
 
-// =====================================================
-// BLOCK ALPHA FROM NORMAL SYSTEM
-// =====================================================
-
-function notAlpha(req, res, next) {
-    if (
-        req.session.user?.username ===
-        ALPHA_USERNAME
-    ) {
-        return res.status(403).json({
-            error: "ALPHA_LOG_ONLY"
-        });
-    }
-
-    next();
-}
-
-// =====================================================
-// ADMIN
-// =====================================================
-
-function admin(req, res, next) {
-    if (!req.session.user) {
-        return res.status(401).json({
-            error: "AUTH_REQUIRED"
-        });
-    }
+function admin(
+    req,
+    res,
+    next
+) {
 
     if (
-        req.session.user.username ===
-        ALPHA_USERNAME
-    ) {
-        return res.status(403).json({
-            error: "ALPHA_LOG_ONLY"
-        });
-    }
-
-    if (
+        !req.session.user ||
         !ADMIN.includes(
             req.session.user.rank
+        ) ||
+        isAlpha(
+            req.session.user
         )
     ) {
         return res.status(403).json({
@@ -560,16 +566,15 @@ function admin(req, res, next) {
     next();
 }
 
-// =====================================================
-// COMMAND
-// =====================================================
+function command(
+    req,
+    res,
+    next
+) {
 
-function command(req, res, next) {
-    if (
-        !req.session.user ||
-        req.session.user.username !==
-            "code_alpha"
-    ) {
+    if (!isCommand(
+        req.session.user
+    )) {
         return res.status(403).json({
             error: "COMMAND_ONLY"
         });
@@ -578,23 +583,15 @@ function command(req, res, next) {
     next();
 }
 
-// =====================================================
-// ALPHA ONLY
-// =====================================================
+function alpha(
+    req,
+    res,
+    next
+) {
 
-function alpha(req, res, next) {
-    if (!req.session.user) {
-        return res.status(401).json({
-            error: "AUTH_REQUIRED"
-        });
-    }
-
-    if (
-        req.session.user.username !==
-            ALPHA_USERNAME ||
-        req.session.user.rank !==
-            ALPHA_RANK
-    ) {
+    if (!isAlpha(
+        req.session.user
+    )) {
         return res.status(403).json({
             error: "ALPHA_ONLY"
         });
@@ -604,13 +601,15 @@ function alpha(req, res, next) {
 }
 
 // =====================================================
-// APPLICATIONS
+// APPLICATION SUBMISSION
 // =====================================================
 
 app.post(
     "/api/applications",
     (req, res) => {
+
         try {
+
             const {
                 name,
                 age,
@@ -629,22 +628,23 @@ app.post(
                 !discord_id
             ) {
                 return res.status(400).json({
-                    error: "MISSING_FIELDS"
+                    error:
+                        "MISSING_FIELDS"
                 });
             }
 
-            const discordId =
-                String(
-                    discord_id
-                ).trim();
+            const discordID =
+                String(discord_id)
+                    .trim();
 
             if (
-                !/^\d{17,20}$/.test(
-                    discordId
+                !/^\d{15,25}$/.test(
+                    discordID
                 )
             ) {
                 return res.status(400).json({
-                    error: "INVALID_DISCORD_ID"
+                    error:
+                        "INVALID_DISCORD_ID"
                 });
             }
 
@@ -670,18 +670,18 @@ app.post(
                     String(name).trim(),
                     Number(age),
                     String(unit),
-                    String(
-                        experience
-                    ).trim(),
-                    String(why).trim(),
-                    discordId,
+                    String(experience)
+                        .trim(),
+                    String(why)
+                        .trim(),
+                    discordID,
                     token
                 );
 
             audit(
                 req,
                 "APPLICATION_SUBMITTED",
-                `application=${result.lastInsertRowid};discord_id=${discordId}`
+                `application=${result.lastInsertRowid};discord_id=${discordID}`
             );
 
             res.cookie(
@@ -705,11 +705,14 @@ app.post(
                     result.lastInsertRowid,
                 token
             });
+
         } catch (error) {
+
             console.error(error);
 
             res.status(500).json({
-                error: "SERVER_ERROR"
+                error:
+                    "SERVER_ERROR"
             });
         }
     }
@@ -722,6 +725,7 @@ app.post(
 app.get(
     "/api/application/me",
     (req, res) => {
+
         const token =
             req.cookies
                 ?.cia_application ||
@@ -780,6 +784,7 @@ app.get(
         let credentials = null;
 
         if (application.linked_user) {
+
             credentials =
                 db.prepare(`
                     SELECT
@@ -809,17 +814,19 @@ app.get(
 app.post(
     "/api/login",
     (req, res, next) => {
+
         try {
+
             const username =
                 String(
                     req.body.username ||
-                        ""
+                    ""
                 ).trim();
 
             const password =
                 String(
                     req.body.password ||
-                        ""
+                    ""
                 );
 
             const user =
@@ -834,6 +841,7 @@ app.post(
                     user.password
                 )
             ) {
+
                 audit(
                     req,
                     "LOGIN_FAILED",
@@ -847,31 +855,19 @@ app.post(
             }
 
             req.session.regenerate(
-                (error) => {
-                    if (error) {
-                        console.error(
-                            "SESSION REGENERATE ERROR:",
-                            error
-                        );
+                error => {
 
-                        return next(
-                            error
-                        );
+                    if (error) {
+                        return next(error);
                     }
 
                     req.session.user =
                         user;
 
                     req.session.save(
-                        (saveError) => {
-                            if (
-                                saveError
-                            ) {
-                                console.error(
-                                    "SESSION SAVE ERROR:",
-                                    saveError
-                                );
+                        saveError => {
 
+                            if (saveError) {
                                 return next(
                                     saveError
                                 );
@@ -883,16 +879,43 @@ app.post(
                                 `rank=${user.rank}`
                             );
 
+                            /*
+                             * Important:
+                             * Tell frontend this is
+                             * the special ALPHA account.
+                             */
+
+                            if (
+                                isAlpha(user)
+                            ) {
+
+                                return res.json({
+                                    user:
+                                        safeUser(
+                                            user
+                                        ),
+                                    role:
+                                        "ALPHA",
+                                    logsOnly:
+                                        true
+                                });
+                            }
+
                             res.json({
                                 user:
                                     safeUser(
                                         user
-                                    )
+                                    ),
+                                role:
+                                    "PERSONNEL",
+                                logsOnly:
+                                    false
                             });
                         }
                     );
                 }
             );
+
         } catch (error) {
             next(error);
         }
@@ -907,35 +930,17 @@ app.post(
     "/api/logout",
     auth,
     (req, res) => {
+
         audit(
             req,
             "LOGOUT"
         );
 
-        req.session.destroy(
-            (error) => {
-                if (error) {
-                    console.error(
-                        error
-                    );
-
-                    return res.status(
-                        500
-                    ).json({
-                        error:
-                            "LOGOUT_FAILED"
-                    });
-                }
-
-                res.clearCookie(
-                    "connect.sid"
-                );
-
-                res.json({
-                    ok: true
-                });
-            }
-        );
+        req.session.destroy(() => {
+            res.json({
+                ok: true
+            });
+        });
     }
 );
 
@@ -946,92 +951,65 @@ app.post(
 app.get(
     "/api/me",
     (req, res) => {
+
+        if (!req.session.user) {
+            return res.json({
+                user: null
+            });
+        }
+
+        if (
+            isAlpha(
+                req.session.user
+            )
+        ) {
+
+            return res.json({
+                user:
+                    safeUser(
+                        req.session.user
+                    ),
+                role:
+                    "ALPHA",
+                logsOnly:
+                    true
+            });
+        }
+
         res.json({
             user:
                 safeUser(
                     req.session.user
-                )
+                ),
+            role:
+                "PERSONNEL",
+            logsOnly:
+                false
         });
-    }
-);
-
-// =====================================================
-// ALPHA DASHBOARD
-// ONLY LOGS
-// =====================================================
-
-app.get(
-    "/api/alpha/dashboard",
-    alpha,
-    (req, res) => {
-        const logs =
-            db.prepare(`
-                SELECT
-                    id,
-                    actor,
-                    actor_label,
-                    action,
-                    ip,
-                    details,
-                    created_at
-                FROM audit
-                ORDER BY id DESC
-                LIMIT 500
-            `).all();
-
-        res.json({
-            ok: true,
-            mode: "ALPHA_LOG_ONLY",
-            logs
-        });
-    }
-);
-
-// =====================================================
-// ALPHA LOGOUT
-// =====================================================
-
-app.post(
-    "/api/alpha/logout",
-    alpha,
-    (req, res) => {
-        audit(
-            req,
-            "ALPHA_LOGOUT"
-        );
-
-        req.session.destroy(
-            (error) => {
-                if (error) {
-                    return res.status(
-                        500
-                    ).json({
-                        error:
-                            "LOGOUT_FAILED"
-                    });
-                }
-
-                res.clearCookie(
-                    "connect.sid"
-                );
-
-                res.json({
-                    ok: true
-                });
-            }
-        );
     }
 );
 
 // =====================================================
 // DASHBOARD
+// ALPHA CANNOT USE THIS
 // =====================================================
 
 app.get(
     "/api/dashboard",
     auth,
-    notAlpha,
     (req, res) => {
+
+        if (
+            isAlpha(
+                req.session.user
+            )
+        ) {
+            return res.status(403).json({
+                error:
+                    "ALPHA_LOGS_ONLY"
+            });
+        }
+
         const user =
             req.session.user;
 
@@ -1061,14 +1039,14 @@ app.get(
                 FROM reports
                 ORDER BY id DESC
             `)
-                .all()
-                .filter(
-                    (report) =>
-                        canView(
-                            user,
-                            report.classification
-                        )
-                );
+            .all()
+            .filter(
+                report =>
+                    canView(
+                        user,
+                        report.classification
+                    )
+            );
 
         res.json({
             user:
@@ -1086,8 +1064,19 @@ app.get(
 app.post(
     "/api/messages/:id/read",
     auth,
-    notAlpha,
     (req, res) => {
+
+        if (
+            isAlpha(
+                req.session.user
+            )
+        ) {
+            return res.status(403).json({
+                error:
+                    "ALPHA_LOGS_ONLY"
+            });
+        }
+
         db.prepare(`
             UPDATE messages
             SET read = 1
@@ -1112,6 +1101,7 @@ app.get(
     "/api/admin/applications",
     admin,
     (req, res) => {
+
         const applications =
             db.prepare(`
                 SELECT
@@ -1144,6 +1134,7 @@ app.post(
     "/api/admin/application/:id/approve",
     admin,
     (req, res) => {
+
         const application =
             db.prepare(
                 "SELECT * FROM applications WHERE id = ?"
@@ -1178,6 +1169,7 @@ app.post(
                 "SELECT id FROM users WHERE username = ?"
             ).get(username)
         ) {
+
             username =
                 cleanUsername(
                     application.name,
@@ -1192,7 +1184,9 @@ app.post(
         const password =
             randomPassword();
 
-        const rank = "AGENT";
+        const rank =
+            "AGENT";
+
         const clearance =
             "RESTRICTED";
 
@@ -1225,8 +1219,7 @@ app.post(
             SET
                 status = ?,
                 linked_user = ?,
-                updated_at =
-                    CURRENT_TIMESTAMP
+                updated_at = CURRENT_TIMESTAMP
             WHERE id = ?
         `).run(
             "APPROVED",
@@ -1236,6 +1229,9 @@ app.post(
 
         const body =
 `Your CIA application has been APPROVED.
+
+APPLICATION ID: ${application.id}
+DISCORD ID: ${application.discord_id || "N/A"}
 
 USERNAME: ${username}
 PASSWORD: ${password}
@@ -1270,7 +1266,7 @@ Keep these credentials private.`;
         audit(
             req,
             "APPLICATION_APPROVED",
-            `application=${application.id};user=${username};newUser=${userResult.lastInsertRowid}`
+            `application=${application.id};discord_id=${application.discord_id || "N/A"};user=${username}`
         );
 
         res.json({
@@ -1289,12 +1285,12 @@ app.post(
     "/api/admin/application/:id/reject",
     admin,
     (req, res) => {
+
         db.prepare(`
             UPDATE applications
             SET
                 status = ?,
-                updated_at =
-                    CURRENT_TIMESTAMP
+                updated_at = CURRENT_TIMESTAMP
             WHERE id = ?
         `).run(
             "REJECTED",
@@ -1321,6 +1317,7 @@ app.get(
     "/api/admin/users",
     admin,
     (req, res) => {
+
         const users =
             db.prepare(`
                 SELECT
@@ -1341,12 +1338,14 @@ app.get(
 
 // =====================================================
 // CREATE USER
+// ONLY COMMAND
 // =====================================================
 
 app.post(
     "/api/admin/users",
     command,
     (req, res) => {
+
         const {
             username,
             password,
@@ -1355,15 +1354,33 @@ app.post(
             clearance
         } = req.body;
 
+        /*
+         * ALPHA cannot be created through
+         * the website.
+         *
+         * It exists only because it is
+         * hard-coded above.
+         */
+
+        if (
+            rank === "ALPHA"
+        ) {
+            return res.status(403).json({
+                error:
+                    "ALPHA_MUST_BE_CREATED_IN_CODE"
+            });
+        }
+
         if (
             !username ||
             !password ||
             !RANKS.includes(rank) ||
             !unit ||
-            !Object.prototype.hasOwnProperty.call(
-                clearanceRank,
-                clearance
-            )
+            !Object.prototype
+                .hasOwnProperty.call(
+                    clearanceRank,
+                    clearance
+                )
         ) {
             return res.status(400).json({
                 error:
@@ -1371,19 +1388,8 @@ app.post(
             });
         }
 
-        // Explicitly prevent creation of ALPHA.
-        if (
-            username.toLowerCase() ===
-                ALPHA_USERNAME ||
-            rank === ALPHA_RANK
-        ) {
-            return res.status(403).json({
-                error:
-                    "ALPHA_CANNOT_BE_CREATED_HERE"
-            });
-        }
-
         try {
+
             const result =
                 db.prepare(`
                     INSERT INTO users
@@ -1421,7 +1427,9 @@ app.post(
                 id:
                     result.lastInsertRowid
             });
+
         } catch {
+
             res.status(400).json({
                 error:
                     "USERNAME_EXISTS"
@@ -1438,6 +1446,7 @@ app.post(
     "/api/admin/message",
     admin,
     (req, res) => {
+
         const {
             target,
             subject,
@@ -1457,15 +1466,14 @@ app.post(
         }
 
         if (
-            String(target).startsWith(
-                "app:"
-            )
+            String(target)
+                .startsWith("app:")
         ) {
+
             const id =
                 Number(
-                    String(
-                        target
-                    ).slice(4)
+                    String(target)
+                        .slice(4)
                 );
 
             const application =
@@ -1564,6 +1572,7 @@ app.post(
     admin,
     upload.single("pdf"),
     (req, res) => {
+
         if (
             !req.body.title ||
             !req.file
@@ -1586,28 +1595,6 @@ app.post(
             finalPath
         );
 
-        const classification =
-            req.body.classification ||
-            "CONFIDENTIAL";
-
-        if (
-            !Object.prototype.hasOwnProperty.call(
-                clearanceRank,
-                classification
-            )
-        ) {
-            try {
-                fs.unlinkSync(
-                    finalPath
-                );
-            } catch {}
-
-            return res.status(400).json({
-                error:
-                    "INVALID_CLASSIFICATION"
-            });
-        }
-
         const result =
             db.prepare(`
                 INSERT INTO reports
@@ -1621,7 +1608,9 @@ app.post(
             `).run(
                 req.body.title,
                 req.session.user.id,
-                classification,
+                req.body
+                    .classification ||
+                    "CONFIDENTIAL",
                 finalPath
             );
 
@@ -1646,8 +1635,19 @@ app.post(
 app.get(
     "/api/reports/:id",
     auth,
-    notAlpha,
     (req, res) => {
+
+        if (
+            isAlpha(
+                req.session.user
+            )
+        ) {
+            return res.status(403).json({
+                error:
+                    "ALPHA_LOGS_ONLY"
+            });
+        }
+
         const report =
             db.prepare(
                 "SELECT * FROM reports WHERE id = ?"
@@ -1689,14 +1689,15 @@ app.get(
 );
 
 // =====================================================
-// COMMAND AUDIT
-// ONLY code_alpha
+// ALPHA LOGS
+// ONLY username=log + rank=ALPHA
 // =====================================================
 
 app.get(
     "/api/command/audit",
-    command,
+    alpha,
     (req, res) => {
+
         const logs =
             db.prepare(`
                 SELECT
@@ -1720,25 +1721,34 @@ app.get(
 );
 
 // =====================================================
-// OLD ADMIN LOG ROUTE
-// DISABLED FOR NORMAL ADMIN
+// ADMIN LOG ENDPOINT
+// REMOVED FROM NORMAL ADMIN
+// ONLY ALPHA
 // =====================================================
 
 app.get(
     "/api/admin/logs",
+    alpha,
     (req, res) => {
-        if (
-            !req.session.user
-        ) {
-            return res.status(401).json({
-                error:
-                    "AUTH_REQUIRED"
-            });
-        }
 
-        return res.status(403).json({
-            error:
-                "LOGS_MOVED_TO_ALPHA"
+        const logs =
+            db.prepare(`
+                SELECT
+                    id,
+                    actor,
+                    actor_label,
+                    action,
+                    ip,
+                    details,
+                    created_at
+                FROM audit
+                ORDER BY id DESC
+                LIMIT 500
+            `).all();
+
+        res.json({
+            ok: true,
+            logs
         });
     }
 );
@@ -1750,8 +1760,19 @@ app.get(
 app.get(
     "/api/sector",
     auth,
-    notAlpha,
     (req, res) => {
+
+        if (
+            isAlpha(
+                req.session.user
+            )
+        ) {
+            return res.status(403).json({
+                error:
+                    "ALPHA_LOGS_ONLY"
+            });
+        }
+
         const users =
             db.prepare(`
                 SELECT
@@ -1766,9 +1787,12 @@ app.get(
                 WHERE username != ?
                 ORDER BY
                     CASE rank
-                        WHEN "COMMAND OF CIA" THEN 1
-                        WHEN "AGENT OFFICER" THEN 2
-                        WHEN "ALPHA" THEN 3
+                        WHEN "COMMAND OF CIA"
+                            THEN 1
+                        WHEN "AGENT OFFICER"
+                            THEN 2
+                        WHEN "AGENT"
+                            THEN 3
                         ELSE 4
                     END,
                     id
@@ -1781,36 +1805,35 @@ app.get(
 );
 
 // =====================================================
-// HEALTH CHECK
+// ALPHA STATUS
+// Useful for index.html
 // =====================================================
 
 app.get(
-    "/api/health",
+    "/api/alpha",
+    auth,
     (req, res) => {
-        try {
-            db.prepare(
-                "SELECT 1"
-            ).get();
 
-            res.json({
-                ok: true,
-                server: "online",
-                database: "online",
-                time:
-                    new Date().toISOString()
-            });
-        } catch (error) {
-            console.error(
-                "HEALTH ERROR:",
-                error
-            );
-
-            res.status(500).json({
-                ok: false,
-                server: "online",
-                database: "offline"
+        if (
+            !isAlpha(
+                req.session.user
+            )
+        ) {
+            return res.status(403).json({
+                error:
+                    "ALPHA_ONLY"
             });
         }
+
+        res.json({
+            ok: true,
+            username:
+                req.session.user
+                    .username,
+            rank:
+                req.session.user.rank,
+            logsOnly: true
+        });
     }
 );
 
@@ -1834,6 +1857,7 @@ app.use(
 app.get(
     "/",
     (req, res) => {
+
         const indexPath =
             path.join(
                 __dirname,
@@ -1846,9 +1870,7 @@ app.get(
                 indexPath
             )
         ) {
-            return res.status(
-                404
-            ).send(
+            return res.status(404).send(
                 "index.html not found. Make sure public/index.html exists."
             );
         }
@@ -1856,21 +1878,6 @@ app.get(
         res.sendFile(
             indexPath
         );
-    }
-);
-
-// =====================================================
-// 404 API
-// =====================================================
-
-app.use(
-    "/api",
-    (req, res) => {
-        res.status(404).json({
-            error:
-                "API_ROUTE_NOT_FOUND",
-            path: req.path
-        });
     }
 );
 
@@ -1885,10 +1892,8 @@ app.use(
         res,
         next
     ) => {
-        console.error(
-            "SERVER ERROR:",
-            err
-        );
+
+        console.error(err);
 
         if (
             res.headersSent
@@ -1900,9 +1905,7 @@ app.use(
             err.message ===
             "ONLY_PDF_ALLOWED"
         ) {
-            return res.status(
-                400
-            ).json({
+            return res.status(400).json({
                 error:
                     "ONLY_PDF_ALLOWED"
             });
@@ -1913,8 +1916,7 @@ app.use(
                 "SERVER_ERROR",
 
             message:
-                process.env
-                    .NODE_ENV ===
+                process.env.NODE_ENV ===
                 "development"
                     ? err.message
                     : "Internal server error"
@@ -1926,76 +1928,52 @@ app.use(
 // START
 // =====================================================
 
-const server =
-    app.listen(
-        PORT,
-        HOST,
-        () => {
-            console.log(
-                "========================================"
-            );
+app.listen(
+    PORT,
+    HOST,
+    () => {
 
-            console.log(
-                "CIA RP SERVER ONLINE"
-            );
+        console.log(
+            `CIA RP running on http://${HOST}:${PORT}`
+        );
 
-            console.log(
-                `HTTP: http://${HOST}:${PORT}`
-            );
+        console.log(
+            `Public folder: ${path.join(
+                __dirname,
+                "public"
+            )}`
+        );
 
-            console.log(
-                `PORT: ${PORT}`
-            );
+        console.log(
+            `Database: ${dbPath}`
+        );
 
-            console.log(
-                `DATABASE: ${dbPath}`
-            );
+        console.log(
+            "----------------------------------------"
+        );
 
-            console.log(
-                `PUBLIC: ${path.join(
-                    __dirname,
-                    "public"
-                )}`
-            );
+        console.log(
+            "ALPHA LOG ACCOUNT"
+        );
 
-            console.log(
-                "ALPHA ACCOUNT: log"
-            );
+        console.log(
+            "Username: log"
+        );
 
-            console.log(
-                "ALPHA MODE: LOG ONLY"
-            );
+        console.log(
+            "Password: log_1"
+        );
 
-            console.log(
-                "========================================"
-            );
-        }
-    );
+        console.log(
+            "Rank: ALPHA"
+        );
 
-// =====================================================
-// GRACEFUL SHUTDOWN
-// =====================================================
+        console.log(
+            "Access: LOGS ONLY"
+        );
 
-function shutdown() {
-    console.log(
-        "Shutting down..."
-    );
-
-    server.close(() => {
-        try {
-            db.close();
-        } catch {}
-
-        process.exit(0);
-    });
-}
-
-process.on(
-    "SIGTERM",
-    shutdown
-);
-
-process.on(
-    "SIGINT",
-    shutdown
+        console.log(
+            "----------------------------------------"
+        );
+    }
 );
