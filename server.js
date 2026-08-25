@@ -1,2391 +1,1510 @@
-<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>CIA // Intelligence Command</title>
-
-<style>
-:root{
---bg:#04070a;--p:#091016;--p2:#0d151c;--l:#1c2a33;
---t:#eaf0f3;--m:#71808a;--r:#d71920;--g:#35d39c;--a:#e5b84c
-}
-*{box-sizing:border-box}
-body{
-margin:0;
-background:radial-gradient(circle at 80% 0,#162028 0,#04070a 42%);
-color:var(--t);
-font-family:Arial,Tahoma,sans-serif
-}
-button,input,select,textarea{font:inherit}
-.wrap{max-width:1280px;margin:auto;padding:24px}
-.top{
-display:flex;justify-content:space-between;align-items:center;
-border-bottom:1px solid var(--l);padding-bottom:17px
-}
-.brand{font-weight:900;letter-spacing:2px}
-.mono{font-family:Consolas,monospace}
-.muted{color:var(--m);font-size:12px}
-.btn{
-background:#111a21;border:1px solid #33444d;color:#fff;
-padding:9px 13px;border-radius:5px;cursor:pointer
-}
-.btn:hover{filter:brightness(1.2)}
-.red{background:#351014;border-color:#72252c}
-.green{background:#0c2a20;border-color:#28674f}
-.amber{background:#2a2412;border-color:#65531f}
-.small{padding:6px 9px;font-size:11px}
-.hero,.panel,.card{
-background:rgba(8,14,19,.96);
-border:1px solid var(--l);
-border-radius:7px
-}
-.hero{padding:36px;margin:25px 0;position:relative;overflow:hidden}
-.hero:after{
-content:'CLASSIFIED // CIA ROLEPLAY';
-position:absolute;left:20px;bottom:13px;
-color:#26343d;font:10px Consolas;
-transform:rotate(-8deg)
-}
-h1{font-size:34px;margin:8px 0}
-.hero p{max-width:800px;color:#9aa7ae;line-height:1.8}
-.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
-.card,.panel{padding:18px}
-.panel{margin-top:14px}
-.field{margin:10px 0}
-.field label{
-display:block;color:#84929a;font:11px Consolas;margin-bottom:6px
-}
-.input{
-width:100%;background:#04080b;border:1px solid #263640;
-color:#fff;border-radius:5px;padding:10px;outline:0
-}
-.input:focus{border-color:#71848e}
-.cols{display:grid;grid-template-columns:1fr 1fr;gap:13px}
-.tabs{display:flex;gap:7px;flex-wrap:wrap;margin:15px 0}
-.tag{
-display:inline-block;border:1px solid #3b4a53;
-border-radius:3px;padding:4px 7px;font:10px Consolas;
-color:#c7d0d5;margin:2px
-}
-.tag.red{border-color:#6c252c;color:#ff6c73}
-.tag.green{border-color:#25684f;color:#48dfa9}
-.tag.amber{border-color:#66541f;color:#e7c25d}
-.table{width:100%;border-collapse:collapse}
-.table th,.table td{
-border-bottom:1px solid #17242d;
-padding:11px;text-align:left;font-size:12px;
-vertical-align:top
-}
-.table th{color:#687780;font:10px Consolas}
-.notice{
-border-left:3px solid var(--r);
-background:#120b0d;
-padding:12px;color:#aeb9bf;font-size:12px
-}
-.toast{
-position:fixed;left:22px;bottom:22px;z-index:9999;
-min-width:280px;max-width:420px;
-background:#0a1117;border:1px solid #33434e;color:#e8eef2;
-padding:13px 15px;border-radius:6px;
-box-shadow:0 15px 45px #000;
-transform:translateY(20px);opacity:0;
-pointer-events:none;transition:.2s
-}
-.toast.show{transform:translateY(0);opacity:1}
-.modal{
-position:fixed;inset:0;background:#000c;
-display:grid;place-items:center;z-index:90;padding:20px
-}
-.modalbox{
-width:min(1100px,96vw);height:min(800px,94vh);
-background:#080d12;border:1px solid #3b4b55;
-border-radius:8px;overflow:hidden;
-display:flex;flex-direction:column
-}
-.modalhead{
-padding:10px 14px;border-bottom:1px solid var(--l);
-display:flex;justify-content:space-between
-}
-.modal iframe{width:100%;height:100%;border:0;background:#222}
-.hidden{display:none!important}
-.empty{padding:30px;text-align:center;color:var(--m)}
-.kicker{font:11px Consolas;color:#ff4b55;letter-spacing:2px}
-.profile{display:flex;gap:7px;flex-wrap:wrap}
-.message{margin:10px 0}
-.message.unread{border-color:#743039}
-.message p{white-space:pre-line;line-height:1.7}
-.login{max-width:550px;margin:70px auto}
-.danger{color:#ff6570}
-.ok{color:var(--g)}
-
-.langbox{
-display:flex;border:1px solid #27343e;
-background:#080d12;border-radius:5px;overflow:hidden
-}
-.lang{
-border:0;background:transparent;color:#71808b;
-padding:7px 10px;font:11px Consolas
-}
-.lang.active{background:#16212a;color:#fff}
-
-.log-header{
-display:flex;
-justify-content:space-between;
-align-items:center;
-gap:10px;
-flex-wrap:wrap;
-margin-bottom:15px
-}
-
-.log-title{
-font-size:24px;
-font-weight:900;
-letter-spacing:1px
-}
-
-.log-row{
-background:#070d12;
-border:1px solid #17242d;
-border-radius:6px;
-padding:14px;
-margin-bottom:9px
-}
-
-.log-meta{
-display:flex;
-gap:8px;
-flex-wrap:wrap;
-align-items:center;
-margin-bottom:8px
-}
-
-.log-action{
-font-family:Consolas,monospace;
-color:#e5b84c;
-font-weight:bold
-}
-
-.log-details{
-font-family:Consolas,monospace;
-font-size:12px;
-color:#aeb9bf;
-white-space:pre-wrap;
-word-break:break-word
-}
-
-.copy-id{
-cursor:pointer
-}
-
-.rtl{direction:rtl}
-.rtl .top{direction:rtl}
-.rtl .table{text-align:right}
-.rtl .field{text-align:right}
-
-@media(max-width:800px){
-.grid,.cols{grid-template-columns:1fr}
-.wrap{padding:14px}
-h1{font-size:26px}
-.table{font-size:11px}
-.table th,.table td{padding:8px}
-}
-</style>
-</head>
-
-<body>
-
-<div class="wrap">
-
-<div class="top">
-
-<div>
-<div class="brand">CIA // INTELLIGENCE COMMAND</div>
-<div class="muted mono">INTERNAL ROLEPLAY NETWORK</div>
-</div>
-
-<div style="display:flex;gap:8px;align-items:center">
-
-<div class="langbox">
-<button id="langEN" class="lang active" onclick="setLang('en')">EN</button>
-<button id="langAR" class="lang" onclick="setLang('ar')">عربي</button>
-</div>
-
-<div id="topActions">
-<button class="btn" onclick="loginPage()">LOGIN</button>
-<button class="btn red" onclick="applyPage()">APPLY</button>
-</div>
-
-</div>
-</div>
-
-
-<!-- HOME -->
-
-<div id="home">
-
-<section class="hero">
-
-<div class="kicker">
-CENTRAL INTELLIGENCE AGENCY // SECURE PORTAL
-</div>
-
-<h1>INTELLIGENCE COMMAND</h1>
-
-<p>
-Recruitment, personnel, missions, messages and classified reports
-in one persistent role-play command system.
-</p>
-
-<button class="btn red" onclick="applyPage()">
-SUBMIT CIA APPLICATION
-</button>
-
-<button class="btn" onclick="loginPage()">
-PERSONNEL LOGIN
-</button>
-
-</section>
-
-<div class="grid">
-
-<div class="card">
-<span class="tag">RECRUITMENT</span>
-<h3>Apply in English</h3>
-<p class="muted">
-Submit your exact in-game name and Discord ID.
-</p>
-</div>
-
-<div class="card">
-<span class="tag green">PERSISTENT</span>
-<h3>Private Dashboard</h3>
-<p class="muted">
-Your application remains available from this browser.
-</p>
-</div>
-
-<div class="card">
-<span class="tag red">CLASSIFIED</span>
-<h3>Command Reports</h3>
-<p class="muted">
-Authorized personnel can access classified intelligence.
-</p>
-</div>
-
-</div>
-
-</div>
-
-
-<!-- AUTH -->
-
-<div id="auth" class="panel login hidden">
-
-<div id="authTitle" class="kicker">
-SECURE LOGIN
-</div>
-
-<div id="authBody"></div>
-
-</div>
-
-
-<!-- APPLICATION DASHBOARD -->
-
-<div id="appDash" class="hidden">
-
-<div class="hero">
-
-<div class="kicker">
-APPLICANT DASHBOARD
-</div>
-
-<h1 id="appNameTitle">
-APPLICATION
-</h1>
-
-<div id="appStatus"></div>
-
-<p id="appMeta"></p>
-
-</div>
-
-<div class="tabs">
-
-<button class="btn" onclick="appTab('messages')">
-MESSAGES
-</button>
-
-<button class="btn" onclick="appTab('application')">
-APPLICATION FILE
-</button>
-
-<button class="btn" onclick="backHome()">
-HOME
-</button>
-
-</div>
-
-<div id="appContent"></div>
-
-</div>
-
-
-<!-- NORMAL USER DASHBOARD -->
-
-<div id="userDash" class="hidden">
-
-<div class="hero">
-
-<div class="kicker">
-PERSONNEL DASHBOARD
-</div>
-
-<h1 id="welcome"></h1>
-
-<div id="profile" class="profile"></div>
-
-</div>
-
-<div class="tabs">
-
-<button class="btn" onclick="userTab('messages')">
-MESSAGES
-</button>
-
-<button class="btn" onclick="userTab('reports')">
-REPORTS
-</button>
-
-<button class="btn" onclick="userTab('sector')">
-SECTOR DIRECTORY
-</button>
-
-<button class="btn" onclick="userTab('profile')">
-PERSONNEL FILE
-</button>
-
-<button id="adminBtn"
-class="btn red hidden"
-onclick="userTab('admin')">
-ADMIN COMMAND
-</button>
-
-<button class="btn" onclick="logout()">
-LOGOUT
-</button>
-
-</div>
-
-<div id="userContent"></div>
-
-</div>
-
-
-<!-- PDF -->
-
-<div id="pdfModal" class="modal hidden">
-
-<div class="modalbox">
-
-<div class="modalhead">
-
-<span class="mono">
-CLASSIFIED PDF VIEWER
-</span>
-
-<button class="btn small" onclick="closePdf()">
-CLOSE
-</button>
-
-</div>
-
-<iframe id="pdfFrame"></iframe>
-
-</div>
-
-</div>
-
-
-<div id="toast" class="toast"></div>
-
-</div>
-
-
-<script>
-
-const $=id=>document.getElementById(id);
-
-let me=null;
-let udata=null;
-let appdata=null;
-
-const adminRanks=[
-"AGENT OFFICER",
-"COMMAND OF CIA"
-];
-
-const LOG_ACCOUNT="log";
-const LOG_RANK="ALPHA";
-
-
-function esc(v){
-return String(v??'').replace(/[&<>"']/g,m=>({
-'&':'&amp;',
-'<':'&lt;',
-'>':'&gt;',
-'"':'&quot;',
-"'":'&#39;'
-}[m]))
-}
-
-
-function toast(t){
-
-$('toast').textContent=t;
-
-$('toast').classList.add('show');
-
-setTimeout(
-()=>$('toast').classList.remove('show'),
-3000
+```js
+const express = require("express");
+const session = require("express-session");
+const bcrypt = require("bcryptjs");
+const Database = require("better-sqlite3");
+const multer = require("multer");
+const path = require("path");
+const fs = require("fs");
+const crypto = require("crypto");
+
+const app = express();
+
+const PORT = Number(process.env.PORT || 3000);
+const HOST = process.env.HOST || "0.0.0.0";
+
+app.set("trust proxy", true);
+
+app.use(express.json({ limit: "2mb" }));
+app.use(express.urlencoded({ extended: true }));
+
+// =====================================================
+// DATABASE
+// =====================================================
+
+const dbPath = path.join(__dirname, "cia.db");
+const db = new Database(dbPath);
+
+db.pragma("journal_mode = WAL");
+
+db.exec(`
+CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT UNIQUE NOT NULL,
+    password TEXT NOT NULL,
+    rank TEXT NOT NULL,
+    unit TEXT NOT NULL,
+    clearance TEXT NOT NULL,
+    in_game_name TEXT,
+    client_id TEXT,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
 
-}
-
-
-function base(){
-
-[
-'home',
-'auth',
-'appDash',
-'userDash'
-].forEach(
-x=>$(x).classList.add('hidden')
+CREATE TABLE IF NOT EXISTS applications (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    age INTEGER NOT NULL,
+    unit TEXT NOT NULL,
+    experience TEXT NOT NULL,
+    why TEXT NOT NULL,
+    client_id TEXT,
+    status TEXT DEFAULT 'PENDING',
+    dashboard_token TEXT UNIQUE NOT NULL,
+    linked_user INTEGER,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(linked_user) REFERENCES users(id)
 );
 
-$('topActions').classList.remove('hidden');
-
-$('home').classList.remove('hidden');
-
-}
-
-
-function backHome(){
-location.reload();
-}
-
-
-/* LOGIN */
-
-function loginPage(){
-
-$('home').classList.add('hidden');
-$('appDash').classList.add('hidden');
-$('userDash').classList.add('hidden');
-$('auth').classList.remove('hidden');
-
-$('authTitle').textContent=
-lang==='ar'
-?'تسجيل دخول الأفراد'
-:'SECURE PERSONNEL LOGIN';
-
-$('authBody').innerHTML=`
-
-<div class="field">
-
-<label>USERNAME</label>
-
-<input
-id="lu"
-class="input"
-autocomplete="username"
->
-
-</div>
-
-<div class="field">
-
-<label>PASSWORD</label>
-
-<input
-id="lp"
-type="password"
-class="input"
-autocomplete="current-password"
->
-
-</div>
-
-<button class="btn red"
-onclick="login()">
-AUTHENTICATE
-</button>
-
-<button class="btn"
-onclick="base()">
-BACK
-</button>
-
-`;
-
-$('lp').addEventListener(
-'keydown',
-e=>{
-if(e.key==='Enter') login()
-}
+CREATE TABLE IF NOT EXISTS messages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    sender_id INTEGER,
+    sender_label TEXT NOT NULL,
+    recipient_user INTEGER,
+    recipient_application INTEGER,
+    subject TEXT NOT NULL,
+    body TEXT NOT NULL,
+    type TEXT DEFAULT 'MESSAGE',
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    read INTEGER DEFAULT 0
 );
 
-$('lu').focus();
-
-}
-
-
-/* APPLICATION */
-
-function applyPage(){
-
-$('home').classList.add('hidden');
-
-$('auth').classList.remove('hidden');
-
-$('authTitle').textContent=
-'CIA APPLICATION // PERSONNEL INFORMATION';
-
-$('authBody').innerHTML=`
-
-<div class="notice">
-
-All information submitted here is attached to your
-CIA application record.
-
-Your Discord ID is used as your application identifier
-and is visible to authorized personnel.
-
-</div>
-
-<div class="cols">
-
-<div class="field">
-
-<label>IN-GAME NAME (ENGLISH)</label>
-
-<input
-id="an"
-class="input"
-placeholder="John Carter"
->
-
-</div>
-
-
-<div class="field">
-
-<label>DISCORD ID</label>
-
-<input
-id="adi"
-class="input"
-placeholder="123456789012345678"
-inputmode="numeric"
-autocomplete="off"
->
-
-<div class="muted" style="margin-top:6px">
-
-Enter your Discord User ID.
-Enable Developer Mode in Discord,
-then copy your User ID.
-
-</div>
-
-</div>
-
-
-<div class="field">
-
-<label>AGE</label>
-
-<input
-id="aa"
-type="number"
-class="input"
->
-
-</div>
-
-
-<div class="field">
-
-<label>REQUESTED UNIT</label>
-
-<select id="au" class="input">
-
-<option>Intelligence Operations</option>
-<option>Field Operations</option>
-<option>Cyber Intelligence</option>
-<option>Internal Affairs</option>
-<option>Protective Operations</option>
-
-</select>
-
-</div>
-
-
-<div class="field">
-
-<label>EXPERIENCE</label>
-
-<input
-id="ae"
-class="input"
->
-
-</div>
-
-</div>
-
-
-<div class="field">
-
-<label>WHY SHOULD CIA ACCEPT YOU?</label>
-
-<textarea
-id="aw"
-class="input"
-rows="5"
-></textarea>
-
-</div>
-
-
-<button
-class="btn red"
-onclick="apply()">
-SUBMIT APPLICATION
-</button>
-
-<button
-class="btn"
-onclick="base()">
-BACK
-</button>
-
-`;
-
-}
-
-
-/* SUBMIT */
-
-async function apply(){
-
-const b={
-
-name:$('an').value.trim(),
-
-discord_id:$('adi').value.trim(),
-
-age:$('aa').value,
-
-unit:$('au').value,
-
-experience:$('ae').value.trim(),
-
-why:$('aw').value.trim()
-
-};
-
-
-if(
-!b.name||
-!b.discord_id||
-!b.age||
-!b.experience||
-!b.why
-){
-
-return toast(
-'Complete every field including Discord ID.'
+CREATE TABLE IF NOT EXISTS reports (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
+    author INTEGER NOT NULL,
+    classification TEXT NOT NULL,
+    file TEXT NOT NULL,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS audit (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    actor INTEGER,
+    actor_label TEXT,
+    action TEXT NOT NULL,
+    ip TEXT,
+    client_id TEXT,
+    details TEXT,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
+`);
+
+// =====================================================
+// SAFE MIGRATIONS
+// =====================================================
+
+function addColumnIfMissing(table, column, definition) {
+    const columns = db.prepare(`PRAGMA table_info(${table})`).all();
+
+    if (!columns.some(c => c.name === column)) {
+        db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+        console.log(`Added ${table}.${column}`);
+    }
 }
 
+addColumnIfMissing("users", "client_id", "TEXT");
+addColumnIfMissing("applications", "client_id", "TEXT");
+addColumnIfMissing("audit", "client_id", "TEXT");
 
-/*
-Only normal Discord snowflake-looking IDs.
-No username option.
-*/
+// =====================================================
+// UPLOADS
+// =====================================================
 
-if(!/^\d{15,25}$/.test(b.discord_id)){
+const uploads = path.join(__dirname, "uploads");
 
-return toast(
-'Invalid Discord ID.'
+if (!fs.existsSync(uploads)) {
+    fs.mkdirSync(uploads, { recursive: true });
+}
+
+// =====================================================
+// SESSION
+// =====================================================
+
+app.use(
+    session({
+        secret:
+            process.env.SESSION_SECRET ||
+            "CHANGE_THIS_TO_A_LONG_RANDOM_SECRET_2026",
+
+        resave: false,
+        saveUninitialized: false,
+
+        cookie: {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "lax",
+            maxAge: 1000 * 60 * 60 * 24 * 30
+        }
+    })
 );
 
+// =====================================================
+// IP
+// =====================================================
+
+function getClientIP(req) {
+    const cloudflareIP = req.headers["cf-connecting-ip"];
+
+    if (cloudflareIP) {
+        return String(cloudflareIP).trim();
+    }
+
+    const forwarded = req.headers["x-forwarded-for"];
+
+    if (forwarded) {
+        return String(forwarded)
+            .split(",")[0]
+            .trim()
+            .replace("::ffff:", "");
+    }
+
+    return String(req.socket.remoteAddress || "unknown")
+        .trim()
+        .replace("::ffff:", "");
 }
 
-
-try{
-
-const r=await fetch(
-'/api/applications',
-{
-method:'POST',
-headers:{
-'Content-Type':'application/json'
-},
-credentials:'same-origin',
-body:JSON.stringify(b)
-}
-);
-
-const j=await r.json();
-
-if(!r.ok){
-
-return toast(
-j.error||'Application could not be saved.'
-);
-
-}
-
-
-/*
-Store application token.
-*/
-
-document.cookie=
-'cia_application='+
-encodeURIComponent(j.token)+
-'; max-age=31536000; path=/; samesite=lax';
-
-
-/*
-Show Application ID + COPY.
-*/
-
-$('authBody').innerHTML=`
-
-<div class="panel">
-
-<div class="kicker">
-APPLICATION REGISTERED
-</div>
-
-<h2>
-APPLICATION #${esc(j.id)}
-</h2>
-
-<p class="muted">
-Your application has been successfully registered.
-</p>
-
-<div class="field">
-
-<label>APPLICATION ID</label>
-
-<div style="display:flex;gap:8px">
-
-<input
-id="applicationIdCopy"
-class="input"
-readonly
-value="${esc(j.id)}"
->
-
-<button
-class="btn green"
-onclick="copyApplicationId()">
-COPY
-</button>
-
-</div>
-
-</div>
-
-
-<div class="field">
-
-<label>DISCORD ID</label>
-
-<div style="display:flex;gap:8px">
-
-<input
-class="input"
-readonly
-value="${esc(b.discord_id)}"
->
-
-<button
-class="btn"
-onclick="copyText('${esc(b.discord_id)}')">
-COPY
-</button>
-
-</div>
-
-</div>
-
-
-<div class="notice">
-
-Keep your Application ID.
-
-It can be used by authorized personnel
-to identify your application.
-
-</div>
-
-<br>
-
-<button
-class="btn red"
-onclick="loadApplication()">
-OPEN APPLICATION DASHBOARD
-</button>
-
-</div>
-
-`;
-
-toast(
-'Application registered successfully.'
-);
-
-}
-
-
-/* COPY */
-
-async function copyApplicationId(){
-
-const el=$('applicationIdCopy');
-
-await navigator.clipboard.writeText(
-el.value
-);
-
-toast('Application ID copied.');
-
-}
-
-
-async function copyText(value){
-
-try{
-
-await navigator.clipboard.writeText(value);
-
-toast('Copied.');
-
-}catch{
-
-toast('Copy failed.');
-
-}
-
-}
-
-
-/* LOAD APPLICATION */
-
-async function loadApplication(){
-
-try{
-
-let r=await fetch(
-'/api/application/me',
-{
-credentials:'same-origin'
-}
-);
-
-let j=await r.json();
-
-if(!j.application)
-return base();
-
-appdata=j;
-
-$('auth').classList.add('hidden');
-$('home').classList.add('hidden');
-$('userDash').classList.add('hidden');
-
-$('appDash').classList.remove('hidden');
-
-$('topActions').classList.add('hidden');
-
-$('appNameTitle').textContent=
-j.application.name;
-
-$('appStatus').innerHTML=
-'<span class="tag '+
-(
-j.application.status==='APPROVED'
-?'green':
-j.application.status==='REJECTED'
-?'red':
-'amber'
-)+
-'">'+
-esc(j.application.status)+
-'</span>';
-
-$('appMeta').textContent=
-'Application #'+
-j.application.id+
-' // '+
-j.application.unit+
-' // submitted '+
-j.application.created_at;
-
-appTab('messages');
-
-}catch{
-
-toast(
-'Application server connection error.'
-);
-
-}
-
-}
-
-
-/* APPLICATION TABS */
-
-function appTab(t){
-
-if(t==='messages'){
-
-let a=appdata.messages||[];
-
-$('appContent').innerHTML=
-
-'<div class="panel">'+
-'<h2>MESSAGES</h2>'+
-
-(
-a.length
-
-?
-
-a.map(
-m=>
-'<div class="card message '+
-(!m.read?'unread':'')+
-'">'+
-
-'<b>'+
-esc(m.subject)+
-'</b>'+
-
-'<div class="muted mono">'+
-esc(m.sender_label)+
-' // '+
-esc(m.created_at)+
-'</div>'+
-
-'<p>'+
-esc(m.body)+
-'</p>'+
-
-'</div>'
-).join('')
-
-:
-
-'<div class="empty">No messages yet.</div>'
-
-)+
-
-'</div>';
-
-return;
-
-}
-
-
-$('appContent').innerHTML=
-
-'<div class="panel">'+
-
-'<h2>APPLICATION FILE</h2>'+
-
-'<table class="table">'+
-
-'<tr><th>APPLICATION ID</th><td>'+
-esc(appdata.application.id)+
-'</td></tr>'+
-
-'<tr><th>DISCORD ID</th><td>'+
-esc(
-appdata.application.discord_id||
-'ERROR'
-)+
-'</td></tr>'+
-
-'<tr><th>IN-GAME NAME</th><td>'+
-esc(appdata.application.name)+
-'</td></tr>'+
-
-'<tr><th>UNIT</th><td>'+
-esc(appdata.application.unit)+
-'</td></tr>'+
-
-'<tr><th>STATUS</th><td>'+
-esc(appdata.application.status)+
-'</td></tr>'+
-
-'<tr><th>EXPERIENCE</th><td>'+
-esc(appdata.application.experience)+
-'</td></tr>'+
-
-'<tr><th>WHY CIA</th><td>'+
-esc(appdata.application.why)+
-'</td></tr>'+
-
-'</table>'+
-
-(
-appdata.credentials
-
-?
-
-'<div class="notice" style="margin-top:14px">'+
-'ACCOUNT ISSUED<br><br>'+
-'USERNAME: <b>'+
-esc(appdata.credentials.username)+
-'</b><br>'+
-'RANK: '+
-esc(appdata.credentials.rank)+
-'<br>'+
-'UNIT: '+
-esc(appdata.credentials.unit)+
-'</div>'
-
-:
-
-''
-
-)+
-
-'</div>';
-
-}
-
-
-/* LOGIN */
-
-async function login(){
-
-if(location.protocol==='file:'){
-
-return toast(
-'Run the Node server with npm start.'
-);
-
-}
-
-try{
-
-let r=await fetch(
-'/api/login',
-{
-method:'POST',
-headers:{
-'Content-Type':'application/json'
-},
-credentials:'same-origin',
-body:JSON.stringify({
-
-username:$('lu').value.trim(),
-
-password:$('lp').value
-
-})
-}
-);
-
-let j=await r.json();
-
-if(!r.ok){
-
-return toast(
-j.error==='INVALID_CREDENTIALS'
-?
-'Invalid username or password.'
-:
-'Login failed.'
-);
-
-}
-
-me=j.user;
-
-/*
-IMPORTANT:
-The server must return rank=ALPHA
-for the log account.
-*/
-
-if(
-me.username.toLowerCase()===
-LOG_ACCOUNT
-||
-me.rank===LOG_RANK
-){
-
-enterLog();
-
-return;
-
-}
-
-enterUser();
-
-}catch(e){
-
-toast(
-'Server connection error.'
-);
-
-}
-
-}
-
-
-/* NORMAL USER */
-
-function enterUser(){
-
-$('auth').classList.add('hidden');
-$('home').classList.add('hidden');
-$('appDash').classList.add('hidden');
-
-$('userDash').classList.remove('hidden');
-
-$('topActions').classList.add('hidden');
-
-$('welcome').textContent=
-'WELCOME, '+
-me.username.toUpperCase();
-
-$('profile').innerHTML=
-
-'<span class="tag">'+
-'RANK: '+
-esc(me.rank)+
-'</span>'+
-
-'<span class="tag">'+
-'UNIT: '+
-esc(me.unit)+
-'</span>'+
-
-'<span class="tag red">'+
-'CLEARANCE: '+
-esc(me.clearance)+
-'</span>';
-
-if(adminRanks.includes(me.rank))
-$('adminBtn').classList.remove('hidden');
-
-loadUser();
-
-}
-
-
-/* LOG ACCOUNT */
-
-function enterLog(){
-
-/*
-Completely hide normal dashboard.
-*/
-
-$('auth').classList.add('hidden');
-$('home').classList.add('hidden');
-$('appDash').classList.add('hidden');
-
-$('userDash').classList.remove('hidden');
-
-$('topActions').classList.add('hidden');
-
-
-/*
-Only LOG section.
-*/
-
-$('welcome').textContent=
-'LOG // AUDIT CONTROL';
-
-$('profile').innerHTML=
-
-'<span class="tag red">ALPHA</span>'+
-'<span class="tag">LOG ACCESS</span>'+
-'<span class="tag">RESTRICTED</span>';
-
-
-$('userDash').querySelector('.tabs').innerHTML=`
-
-<button
-class="btn red"
-onclick="userTab('logs')">
-LOGS
-</button>
-
-<button
-class="btn"
-onclick="logout()">
-LOGOUT
-</button>
-
-`;
-
-$('userContent').innerHTML=`
-
-<div class="panel">
-
-<div class="log-header">
-
-<div>
-
-<div class="kicker">
-ALPHA // AUDIT SYSTEM
-</div>
-
-<div class="log-title">
-SYSTEM LOGS
-</div>
-
-<div class="muted">
-Restricted audit records.
-</div>
-
-</div>
-
-<div>
-
-<button
-class="btn small"
-onclick="loadLogs()">
-REFRESH
-</button>
-
-</div>
-
-</div>
-
-<div id="logsContainer">
-<div class="empty">
-Loading logs...
-</div>
-</div>
-
-</div>
-
-`;
-
-loadLogs();
-
-}
-
-
-/* LOG TAB */
-
-function userTab(t){
-
-if(
-me &&
-(
-me.username.toLowerCase()===LOG_ACCOUNT||
-me.rank===LOG_RANK
-)
-){
-
-if(t==='logs')
-loadLogs();
-
-return;
-
-}
-
-if(t==='messages')
-renderMessages();
-
-if(t==='reports')
-renderReports();
-
-if(t==='sector')
-renderSector();
-
-if(t==='profile')
-renderProfile();
-
-if(t==='admin')
-renderAdmin();
-
-}
-
-
-/* LOAD NORMAL */
-
-async function loadUser(){
-
-let r=await fetch(
-'/api/dashboard',
-{
-credentials:'same-origin'
-}
-);
-
-if(!r.ok)
-return location.reload();
-
-udata=await r.json();
-
-userTab('messages');
-
-}
-
-
-/* LOGS */
-
-async function loadLogs(){
-
-const box=$('logsContainer');
-
-if(!box)
-return;
-
-box.innerHTML=
-'<div class="empty">Loading logs...</div>';
-
-try{
-
-/*
-This is the ONLY endpoint used
-for the LOG account.
-*/
-
-let r=await fetch(
-'/api/command/audit',
-{
-credentials:'same-origin',
-cache:'no-store'
-}
-);
-
-let j=await r.json();
-
-if(!r.ok){
-
-box.innerHTML=
-'<div class="notice">'+
-'LOG ACCESS ERROR: '+
-esc(j.error||'FORBIDDEN')+
-'</div>';
-
-return;
-
-}
-
-let logs=j.logs||[];
-
-if(!logs.length){
-
-box.innerHTML=
-'<div class="empty">No audit logs available.</div>';
-
-return;
-
-}
-
-box.innerHTML=logs.map(
-x=>`
-
-<div class="log-row">
-
-<div class="log-meta">
-
-<span class="tag amber">
-#${esc(x.id)}
-</span>
-
-<span class="muted mono">
-${esc(x.created_at)}
-</span>
-
-<span class="log-action">
-${esc(x.action)}
-</span>
-
-</div>
-
-
-<div class="log-details">
-
-ACTOR:
-${esc(x.actor_label||'ERROR')}
-
-<br>
-
-IP:
-${esc(x.ip||'ERROR')}
-
-<br>
-
-DETAILS:
-${esc(x.details||'ERROR')}
-
-</div>
-
-</div>
-
-`
-).join('');
-
-}catch(e){
-
-box.innerHTML=
-'<div class="notice">'+
-'LOG SERVER CONNECTION ERROR'+
-'</div>';
-
-}
-
-}
-
-
-/* NORMAL MESSAGES */
-
-function renderMessages(){
-
-let a=udata.messages||[];
-
-$('userContent').innerHTML=
-
-'<div class="panel">'+
-
-'<h2>MESSAGES <span class="tag green">'+
-a.length+
-'</span></h2>'+
-
-(
-a.length
-
-?
-
-a.map(
-m=>
-'<div class="card message '+
-(!m.read?'unread':'')+
-'">'+
-
-'<b>'+
-esc(m.subject)+
-'</b>'+
-
-'<div class="muted mono">'+
-esc(m.sender_label)+
-' // '+
-esc(m.created_at)+
-' // '+
-esc(m.type)+
-'</div>'+
-
-'<p>'+
-esc(m.body)+
-'</p>'+
-
-'</div>'
-).join('')
-
-:
-
-'<div class="empty">No messages.</div>'
-
-)+
-
-'</div>';
-
-}
-
-
-/* REPORTS */
-
-function renderReports(){
-
-let a=udata.reports||[];
-
-$('userContent').innerHTML=
-
-'<div class="panel">'+
-
-'<div style="display:flex;justify-content:space-between">'+
-
-'<h2>INTELLIGENCE REPORTS</h2>'+
-
-'<span class="tag red">
-AUTHORIZED ONLY
-</span>'+
-
-'</div>'+
-
-(
-a.length
-
-?
-
-'<table class="table">'+
-
-'<tr>'+
-'<th>ID</th>'+
-'<th>TITLE</th>'+
-'<th>CLASSIFICATION</th>'+
-'<th>DATE</th>'+
-'<th></th>'+
-'</tr>'+
-
-a.map(
-x=>
-'<tr>'+
-
-'<td class="mono">IR-'+
-x.id+
-'</td>'+
-
-'<td>'+
-esc(x.title)+
-'</td>'+
-
-'<td><span class="tag red">'+
-esc(x.classification)+
-'</span></td>'+
-
-'<td>'+
-esc(x.created_at)+
-'</td>'+
-
-'<td><button class="btn small" onclick="viewPdf('+
-x.id+
-')">VIEW PDF</button></td>'+
-
-'</tr>'
-).join('')+
-
-'</table>'
-
-:
-
-'<div class="empty">
-No reports available for your clearance.
-</div>'
-
-)+
-
-'</div>';
-
-}
-
-
-/* SECTOR */
-
-async function renderSector(){
-
-let r=await fetch('/api/sector');
-
-if(!r.ok)
-return toast('Unable to load directory.');
-
-let a=await r.json();
-
-$('userContent').innerHTML=
-
-'<div class="panel">'+
-
-'<h2>SECTOR PERSONNEL DIRECTORY</h2>'+
-
-'<table class="table">'+
-
-'<tr>'+
-'<th>CODE / USERNAME</th>'+
-'<th>IN-GAME NAME</th>'+
-'<th>RANK</th>'+
-'<th>UNIT</th>'+
-'<th>CLEARANCE</th>'+
-'</tr>'+
-
-a.map(
-x=>
-'<tr>'+
-
-'<td class="mono">'+
-esc(x.username)+
-'</td>'+
-
-'<td>'+
-esc(x.in_game_name)+
-'</td>'+
-
-'<td>'+
-esc(x.rank)+
-'</td>'+
-
-'<td>'+
-esc(x.unit)+
-'</td>'+
-
-'<td>'+
-esc(x.clearance)+
-'</td>'+
-
-'</tr>'
-).join('')+
-
-'</table>'+
-
-'</div>';
-
-}
-
-
-/* PROFILE */
-
-function renderProfile(){
-
-$('userContent').innerHTML=
-
-'<div class="panel">'+
-
-'<h2>PERSONNEL FILE</h2>'+
-
-'<div class="grid">'+
-
-'<div class="card">'+
-'<div class="muted">USERNAME / CODE</div>'+
-'<b>'+esc(me.username)+'</b>'+
-'</div>'+
-
-'<div class="card">'+
-'<div class="muted">RANK</div>'+
-'<b>'+esc(me.rank)+'</b>'+
-'</div>'+
-
-'<div class="card">'+
-'<div class="muted">UNIT</div>'+
-'<b>'+esc(me.unit)+'</b>'+
-'</div>'+
-
-'</div>'+
-
-'</div>';
-
-}
-
-
-/* ADMIN */
-
-async function renderAdmin(){
-
-let [
-ra,
-ru
-]=await Promise.all([
-
-fetch('/api/admin/applications'),
-
-fetch('/api/admin/users')
-
-]);
-
-if(!ra.ok||!ru.ok)
-return toast('Not authorized.');
-
-let apps=await ra.json();
-let users=await ru.json();
-
-let h=
-
-'<div class="panel">'+
-
-'<h2>APPLICATION CONTROL</h2>'+
-
-(
-apps.length
-
-?
-
-'<table class="table">'+
-
-'<tr>'+
-'<th>ID</th>'+
-'<th>DISCORD ID</th>'+
-'<th>IN-GAME NAME</th>'+
-'<th>UNIT</th>'+
-'<th>STATUS</th>'+
-'<th>ACTION</th>'+
-'</tr>'+
-
-apps.map(
-a=>
-'<tr>'+
-
-'<td>'+
-esc(a.id)+
-'</td>'+
-
-'<td class="mono">'+
-esc(a.discord_id||'ERROR')+
-'</td>'+
-
-'<td><b>'+
-esc(a.name)+
-'</b><div class="muted">'+
-esc(a.experience)+
-'</div></td>'+
-
-'<td>'+
-esc(a.unit)+
-'</td>'+
-
-'<td>'+
-esc(a.status)+
-'</td>'+
-
-'<td>'+
-
-(
-a.status==='PENDING'
-
-?
-
-'<button class="btn green small" onclick="approve('+a.id+')">ACCEPT AS AGENT</button> '+
-'<button class="btn small" onclick="reject('+a.id+')">REJECT</button>'
-
-:
-
-'—'
-
-)+
-
-'</td>'+
-
-'</tr>'
-).join('')+
-
-'</table>'
-
-:
-
-'<div class="empty">
-No applications.
-</div>'
-
-)+
-
-'</div>';
-
-
-h+=
-
-'<div class="panel">'+
-
-'<h2>SECTOR TABLE</h2>'+
-
-'<table class="table">'+
-
-'<tr>'+
-'<th>USERNAME / CODE</th>'+
-'<th>IN-GAME NAME</th>'+
-'<th>RANK</th>'+
-'<th>UNIT</th>'+
-'<th>CLEARANCE</th>'+
-'<th>CREATED</th>'+
-'</tr>'+
-
-users.map(
-u=>
-'<tr>'+
-
-'<td class="mono">'+
-esc(u.username)+
-'</td>'+
-
-'<td>'+
-esc(u.in_game_name)+
-'</td>'+
-
-'<td>'+
-esc(u.rank)+
-'</td>'+
-
-'<td>'+
-esc(u.unit)+
-'</td>'+
-
-'<td>'+
-esc(u.clearance)+
-'</td>'+
-
-'<td>'+
-esc(u.created_at)+
-'</td>'+
-
-'</tr>'
-).join('')+
-
-'</table>'+
-
-'</div>';
-
-
-h+=
-
-'<div class="panel">'+
-
-'<h2>SEND MESSAGE / TASK</h2>'+
-
-'<div class="cols">'+
-
-'<div class="field">'+
-'<label>TARGET USERNAME / APPLICATION</label>'+
-'<input id="tmUser" class="input" placeholder="agent_001 or app:12">'+
-'</div>'+
-
-'<div class="field">'+
-'<label>TYPE</label>'+
-'<select id="tmType" class="input">'+
-'<option>MESSAGE</option>'+
-'<option>TASK</option>'+
-'<option>ASSIGNMENT</option>'+
-'</select>'+
-'</div>'+
-
-'</div>'+
-
-'<div class="field">'+
-'<label>SUBJECT</label>'+
-'<input id="tmSub" class="input">'+
-'</div>'+
-
-'<div class="field">'+
-'<label>MESSAGE / TASK DETAILS</label>'+
-'<textarea id="tmBody" class="input" rows="5"></textarea>'+
-'</div>'+
-
-'<button class="btn red" onclick="sendMessage()">SEND</button>'+
-
-'</div>';
-
-
-h+=
-
-'<div class="panel">'+
-
-'<h2>REGISTER INTELLIGENCE REPORT</h2>'+
-
-'<div class="field">'+
-'<label>TITLE</label>'+
-'<input id="rt" class="input">'+
-'</div>'+
-
-'<div class="field">'+
-'<label>CLASSIFICATION</label>'+
-'<select id="rc" class="input">'+
-'<option>CONFIDENTIAL</option>'+
-'<option>SECRET</option>'+
-'<option>TOP SECRET</option>'+
-'<option>OMEGA</option>'+
-'</select>'+
-'</div>'+
-
-'<div class="field">'+
-'<label>PDF</label>'+
-'<input id="rf" type="file" accept="application/pdf" class="input">'+
-'</div>'+
-
-'<button class="btn red" onclick="uploadReport()">
-REGISTER PDF REPORT
-</button>'+
-
-'</div>';
-
-
-if(me.rank==='COMMAND OF CIA'){
-
-h+=
-
-'<div class="panel">'+
-
-'<h2>COMMAND // CREATE ACCOUNT</h2>'+
-
-'<div class="cols">'+
-
-'<div class="field"><label>USERNAME / CODE</label>'+
-'<input id="nu" class="input"></div>'+
-
-'<div class="field"><label>IN-GAME NAME</label>'+
-'<input id="nin" class="input"></div>'+
-
-'<div class="field"><label>PASSWORD</label>'+
-'<input id="np" class="input" type="password"></div>'+
-
-'<div class="field"><label>RANK</label>'+
-'<select id="nr" class="input">'+
-'<option>AGENT</option>'+
-'<option>AGENT OFFICER</option>'+
-'<option>COMMAND OF CIA</option>'+
-'</select></div>'+
-
-'<div class="field"><label>UNIT</label>'+
-'<input id="nunit" class="input" value="Intelligence Operations"></div>'+
-
-'<div class="field"><label>CLEARANCE</label>'+
-'<select id="nc" class="input">'+
-'<option>RESTRICTED</option>'+
-'<option>CONFIDENTIAL</option>'+
-'<option>SECRET</option>'+
-'<option>TOP SECRET</option>'+
-'<option>OMEGA</option>'+
-'</select></div>'+
-
-'</div>'+
-
-'<button class="btn red" onclick="createUser()">
-CREATE ACCOUNT
-</button>'+
-
-'</div>';
-
-}
-
-
-$('userContent').innerHTML=h;
-
-}
-
-
-/* APPROVE */
-
-async function approve(id){
-
-let r=await fetch(
-'/api/admin/application/'+
-id+
-'/approve',
-{
-method:'POST'
-}
-);
-
-let j=await r.json();
-
-if(!r.ok)
-return toast('Could not approve.');
-
-toast(
-'Approved. Username: '+
-j.username
-);
-
-renderAdmin();
-
-}
-
-
-/* REJECT */
-
-async function reject(id){
-
-let r=await fetch(
-'/api/admin/application/'+
-id+
-'/reject',
-{
-method:'POST'
-}
-);
-
-if(!r.ok)
-return toast('Could not reject.');
-
-toast('Application rejected.');
-
-renderAdmin();
-
-}
-
-
-/* MESSAGE */
-
-async function sendMessage(){
-
-let b={
-
-target:$('tmUser').value.trim(),
-
-subject:$('tmSub').value.trim(),
-
-body:$('tmBody').value.trim(),
-
-type:$('tmType').value
-
-};
-
-if(
-!b.target||
-!b.subject||
-!b.body
-)
-return toast(
-'Complete target, subject and message.'
-);
-
-let r=await fetch(
-'/api/admin/message',
-{
-method:'POST',
-headers:{
-'Content-Type':'application/json'
-},
-body:JSON.stringify(b)
-}
-);
-
-if(!r.ok){
-
-let j=await r.json();
-
-return toast(
-j.error==='USER_NOT_FOUND'
-?
-'Username not found.'
-:
-'Could not send.'
-);
-
-}
-
-toast('Message/task sent.');
-
-$('tmBody').value='';
-
-}
-
-
-/* CREATE USER */
-
-async function createUser(){
-
-let b={
-
-username:$('nu').value.trim(),
-
-password:$('np').value,
-
-rank:$('nr').value,
-
-unit:$('nunit').value.trim(),
-
-clearance:$('nc').value,
-
-in_game_name:$('nin').value.trim()
-
-};
-
-let r=await fetch(
-'/api/admin/users',
-{
-method:'POST',
-headers:{
-'Content-Type':'application/json'
-},
-body:JSON.stringify(b)
-}
-);
-
-if(!r.ok)
-return toast('Could not create account.');
-
-toast('Account created.');
-
-renderAdmin();
-
-}
-
-
-/* REPORT */
-
-async function uploadReport(){
-
-let f=$('rf').files[0];
-
-let title=$('rt').value.trim();
-
-if(!f||!title)
-return toast(
-'Enter title and select a PDF.'
-);
-
-let fd=new FormData();
-
-fd.append('title',title);
-
-fd.append(
-'classification',
-$('rc').value
-);
-
-fd.append('pdf',f);
-
-let r=await fetch(
-'/api/admin/reports',
-{
-method:'POST',
-body:fd
-}
-);
-
-if(!r.ok)
-return toast(
-'Could not register report.'
-);
-
-toast(
-'PDF report registered.'
-);
-
-loadUser();
-
-}
-
-
-/* PDF */
-
-function viewPdf(id){
-
-$('pdfFrame').src=
-'/api/reports/'+id;
-
-$('pdfModal').classList.remove(
-'hidden'
-);
-
-}
-
-function closePdf(){
-
-$('pdfFrame').src='';
-
-$('pdfModal').classList.add(
-'hidden'
-);
-
-}
-
-
-/* LOGOUT */
-
-async function logout(){
-
-try{
-
-await fetch(
-'/api/logout',
-{
-method:'POST',
-credentials:'same-origin'
-}
-);
-
-}catch{}
-
-location.reload();
-
-}
-
-
-/* INITIAL SESSION */
-
-fetch(
-'/api/me',
-{
-credentials:'same-origin',
-cache:'no-store'
-}
-)
-
-.then(r=>r.json())
-
-.then(j=>{
-
-if(j.user){
-
-me=j.user;
-
-/*
-Log account must never enter
-the normal dashboard.
-*/
-
-if(
-me.username.toLowerCase()===LOG_ACCOUNT||
-me.rank===LOG_RANK
-){
-
-enterLog();
-
-}else{
-
-enterUser();
-
-}
-
-return;
-
-}
-
-return fetch(
-'/api/application/me',
-{
-credentials:'same-origin'
-}
-);
-
-})
-
-.then(r=>{
-
-if(!r||!r.json)
-return null;
-
-return r.json();
-
-})
-
-.then(x=>{
-
-if(!x||!x.application)
-return;
-
-appdata=x;
-
-$('home').classList.add('hidden');
-
-$('topActions').classList.add('hidden');
-
-$('appDash').classList.remove('hidden');
-
-$('appNameTitle').textContent=
-x.application.name;
-
-$('appStatus').innerHTML=
-'<span class="tag amber">'+
-esc(x.application.status)+
-'</span>';
-
-$('appMeta').textContent=
-'Application #'+
-x.application.id+
-' // '+
-x.application.unit;
-
-appTab('messages');
-
-})
-
-.catch(()=>{
-
-/*
-Do not show LOG connection errors
-on the public homepage.
-*/
-
+app.use((req, res, next) => {
+    req.visitorIP = getClientIP(req);
+    next();
 });
 
+// =====================================================
+// COOKIES
+// =====================================================
 
-/* LANGUAGE */
+app.use((req, res, next) => {
+    const raw = req.headers.cookie || "";
 
-let lang=
-localStorage.getItem('cia_lang')||
-'en';
+    req.cookies = {};
 
+    raw.split(";").forEach(item => {
+        const index = item.indexOf("=");
 
-const I18N={
+        if (index <= 0) return;
 
-en:{
-LOGIN:'LOGIN',
-APPLY:'APPLY'
-},
+        const key = item.slice(0, index).trim();
+        const value = item.slice(index + 1).trim();
 
-ar:{
-LOGIN:'تسجيل الدخول',
-APPLY:'التقديم'
-}
+        try {
+            req.cookies[key] = decodeURIComponent(value);
+        } catch {
+            req.cookies[key] = value;
+        }
+    });
 
+    next();
+});
+
+// =====================================================
+// RANKS
+// =====================================================
+
+const RANKS = [
+    "AGENT",
+    "AGENT OFFICER",
+    "COMMAND OF CIA",
+    "ALPHA"
+];
+
+const ADMIN = [
+    "AGENT OFFICER",
+    "COMMAND OF CIA"
+];
+
+const COMMAND = [
+    "COMMAND OF CIA"
+];
+
+const clearanceRank = {
+    RESTRICTED: 1,
+    CONFIDENTIAL: 2,
+    SECRET: 3,
+    "TOP SECRET": 4,
+    OMEGA: 5
 };
 
+// =====================================================
+// UPLOAD
+// =====================================================
 
-function setLang(next){
+const upload = multer({
+    dest: uploads,
 
-lang=
-next==='ar'
-?
-'ar'
-:
-'en';
+    limits: {
+        fileSize: 20 * 1024 * 1024
+    },
 
-localStorage.setItem(
-'cia_lang',
-lang
-);
+    fileFilter: (req, file, cb) => {
+        if (file.mimetype !== "application/pdf") {
+            return cb(new Error("ONLY_PDF_ALLOWED"));
+        }
 
-document.documentElement.lang=
-lang;
+        cb(null, true);
+    }
+});
 
-document.documentElement.dir=
-lang==='ar'
-?
-'rtl'
-:
-'ltr';
+// =====================================================
+// HELPERS
+// =====================================================
 
-document.body.classList.toggle(
-'rtl',
-lang==='ar'
-);
-
-$('langEN').classList.toggle(
-'active',
-lang==='en'
-);
-
-$('langAR').classList.toggle(
-'active',
-lang==='ar'
-);
-
-$('topActions')
-.querySelectorAll('button')[0]
-.textContent=
-I18N[lang].LOGIN;
-
-$('topActions')
-.querySelectorAll('button')[1]
-.textContent=
-I18N[lang].APPLY;
-
+function ip(req) {
+    return req.visitorIP || getClientIP(req);
 }
 
+function safeUser(user) {
+    if (!user) return null;
 
-setLang(lang);
+    const copy = { ...user };
 
-</script>
+    delete copy.password;
 
-</body>
-</html>
+    return copy;
+}
+
+function cleanUsername(name, id) {
+    const base = String(name)
+        .toLowerCase()
+        .replace(/[^a-z0-9_-]/g, "")
+        .slice(0, 18);
+
+    return (
+        (base || "agent") +
+        "_" +
+        String(id).padStart(3, "0")
+    );
+}
+
+function randomPassword() {
+    return crypto.randomBytes(6).toString("base64url") + "!9";
+}
+
+function canView(user, classification) {
+    return (
+        (clearanceRank[user.clearance] || 0) >=
+        (clearanceRank[classification] || 99)
+    );
+}
+
+function normalizeClientId(value) {
+    if (value === undefined || value === null) {
+        return null;
+    }
+
+    const id = String(value).trim();
+
+    if (!id) {
+        return null;
+    }
+
+    // Discord IDs are normally numeric snowflakes.
+    if (!/^\d{5,30}$/.test(id)) {
+        return null;
+    }
+
+    return id;
+}
+
+// =====================================================
+// AUDIT
+// =====================================================
+
+function audit(req, action, details = "", explicitClientId = null) {
+    const user = req.session?.user;
+
+    let clientId =
+        normalizeClientId(explicitClientId) ||
+        normalizeClientId(user?.client_id);
+
+    if (!clientId) {
+        clientId = "ERROR";
+    }
+
+    try {
+        db.prepare(`
+            INSERT INTO audit
+            (
+                actor,
+                actor_label,
+                action,
+                ip,
+                client_id,
+                details
+            )
+            VALUES (?, ?, ?, ?, ?, ?)
+        `).run(
+            user?.id || null,
+            user?.username || user?.rank || "PUBLIC",
+            action,
+            ip(req),
+            clientId,
+            details
+        );
+    } catch (error) {
+        console.error("AUDIT ERROR:", error);
+    }
+}
+
+// =====================================================
+// CODE ALPHA / LOG ACCOUNT
+// =====================================================
+
+function ensureLogAccount() {
+    const existing = db
+        .prepare("SELECT * FROM users WHERE username = ?")
+        .get("log");
+
+    if (!existing) {
+        const passwordHash = bcrypt.hashSync(
+            "log_1",
+            12
+        );
+
+        db.prepare(`
+            INSERT INTO users
+            (
+                username,
+                password,
+                rank,
+                unit,
+                clearance,
+                in_game_name,
+                client_id
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        `).run(
+            "log",
+            passwordHash,
+            "ALPHA",
+            "ALPHA",
+            "OMEGA",
+            "ALPHA LOG",
+            null
+        );
+
+        console.log("ALPHA LOG ACCOUNT CREATED");
+        console.log("USERNAME: log");
+        console.log("PASSWORD: log_1");
+    } else {
+        if (existing.rank !== "ALPHA") {
+            db.prepare(`
+                UPDATE users
+                SET
+                    rank = 'ALPHA',
+                    unit = 'ALPHA',
+                    clearance = 'OMEGA'
+                WHERE username = 'log'
+            `).run();
+
+            console.log("LOG ACCOUNT RESET TO ALPHA");
+        }
+    }
+}
+
+ensureLogAccount();
+
+// =====================================================
+// MIDDLEWARE
+// =====================================================
+
+function auth(req, res, next) {
+    if (!req.session.user) {
+        return res.status(401).json({
+            error: "AUTH_REQUIRED"
+        });
+    }
+
+    next();
+}
+
+function admin(req, res, next) {
+    if (
+        !req.session.user ||
+        !ADMIN.includes(req.session.user.rank)
+    ) {
+        return res.status(403).json({
+            error: "FORBIDDEN"
+        });
+    }
+
+    next();
+}
+
+function command(req, res, next) {
+    if (
+        !req.session.user ||
+        req.session.user.username !== "code_alpha"
+    ) {
+        return res.status(403).json({
+            error: "COMMAND_ONLY"
+        });
+    }
+
+    next();
+}
+
+function alphaLogs(req, res, next) {
+    if (
+        !req.session.user ||
+        req.session.user.username !== "log" ||
+        req.session.user.rank !== "ALPHA"
+    ) {
+        return res.status(403).json({
+            error: "ALPHA_LOG_ONLY"
+        });
+    }
+
+    next();
+}
+
+// =====================================================
+// APPLICATIONS
+// =====================================================
+
+app.post("/api/applications", (req, res) => {
+    try {
+        const {
+            name,
+            age,
+            unit,
+            experience,
+            why,
+            client_id
+        } = req.body;
+
+        if (
+            !name ||
+            !age ||
+            !unit ||
+            !experience ||
+            !why
+        ) {
+            return res.status(400).json({
+                error: "MISSING_FIELDS"
+            });
+        }
+
+        const clientId = normalizeClientId(client_id);
+
+        const token = crypto
+            .randomBytes(32)
+            .toString("hex");
+
+        const result = db.prepare(`
+            INSERT INTO applications
+            (
+                name,
+                age,
+                unit,
+                experience,
+                why,
+                client_id,
+                dashboard_token
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        `).run(
+            String(name).trim(),
+            Number(age),
+            String(unit),
+            String(experience).trim(),
+            String(why).trim(),
+            clientId,
+            token
+        );
+
+        audit(
+            req,
+            "APPLICATION_SUBMITTED",
+            `application=${result.lastInsertRowid}`,
+            clientId
+        );
+
+        res.cookie(
+            "cia_application",
+            token,
+            {
+                httpOnly: true,
+                sameSite: "lax",
+                maxAge: 1000 * 60 * 60 * 24 * 365
+            }
+        );
+
+        res.json({
+            ok: true,
+            id: result.lastInsertRowid,
+            token,
+            client_id: clientId || "ERROR"
+        });
+
+    } catch (error) {
+        console.error(error);
+
+        res.status(500).json({
+            error: "SERVER_ERROR"
+        });
+    }
+});
+
+// =====================================================
+// APPLICATION ME
+// =====================================================
+
+app.get("/api/application/me", (req, res) => {
+    const token =
+        req.cookies?.cia_application ||
+        req.headers["x-application-token"] ||
+        req.query.token;
+
+    if (!token) {
+        return res.json({
+            application: null
+        });
+    }
+
+    const application = db.prepare(`
+        SELECT
+            id,
+            name,
+            age,
+            unit,
+            experience,
+            why,
+            client_id,
+            status,
+            linked_user,
+            created_at,
+            updated_at
+        FROM applications
+        WHERE dashboard_token = ?
+    `).get(token);
+
+    if (!application) {
+        return res.json({
+            application: null
+        });
+    }
+
+    const messages = db.prepare(`
+        SELECT
+            id,
+            sender_label,
+            subject,
+            body,
+            type,
+            created_at,
+            read
+        FROM messages
+        WHERE recipient_application = ?
+        ORDER BY id DESC
+    `).all(application.id);
+
+    let credentials = null;
+
+    if (application.linked_user) {
+        credentials = db.prepare(`
+            SELECT
+                username,
+                rank,
+                unit,
+                clearance
+            FROM users
+            WHERE id = ?
+        `).get(application.linked_user);
+    }
+
+    res.json({
+        application,
+        messages,
+        credentials
+    });
+});
+
+// =====================================================
+// LOGIN
+// =====================================================
+
+app.post("/api/login", (req, res, next) => {
+    try {
+        const username = String(
+            req.body.username || ""
+        ).trim();
+
+        const password = String(
+            req.body.password || ""
+        );
+
+        const user = db
+            .prepare(
+                "SELECT * FROM users WHERE username = ?"
+            )
+            .get(username);
+
+        if (
+            !user ||
+            !bcrypt.compareSync(
+                password,
+                user.password
+            )
+        ) {
+            audit(
+                req,
+                "LOGIN_FAILED",
+                `username=${username}`,
+                null
+            );
+
+            return res.status(401).json({
+                error: "INVALID_CREDENTIALS"
+            });
+        }
+
+        req.session.regenerate(error => {
+            if (error) {
+                return next(error);
+            }
+
+            req.session.user = user;
+
+            req.session.save(saveError => {
+                if (saveError) {
+                    return next(saveError);
+                }
+
+                audit(
+                    req,
+                    "LOGIN_SUCCESS",
+                    `rank=${user.rank}`
+                );
+
+                res.json({
+                    user: safeUser(user)
+                });
+            });
+        });
+
+    } catch (error) {
+        next(error);
+    }
+});
+
+// =====================================================
+// LOGOUT
+// =====================================================
+
+app.post("/api/logout", auth, (req, res) => {
+    audit(req, "LOGOUT");
+
+    req.session.destroy(() => {
+        res.json({
+            ok: true
+        });
+    });
+});
+
+// =====================================================
+// CURRENT USER
+// =====================================================
+
+app.get("/api/me", (req, res) => {
+    res.json({
+        user: safeUser(req.session.user)
+    });
+});
+
+// =====================================================
+// NORMAL DASHBOARD
+// LOG ACCOUNT IS NOT ALLOWED HERE
+// =====================================================
+
+app.get("/api/dashboard", auth, (req, res) => {
+    const user = req.session.user;
+
+    if (user.username === "log") {
+        return res.status(403).json({
+            error: "LOG_ACCOUNT_USE_LOGS"
+        });
+    }
+
+    const messages = db.prepare(`
+        SELECT
+            id,
+            sender_label,
+            subject,
+            body,
+            type,
+            created_at,
+            read
+        FROM messages
+        WHERE recipient_user = ?
+        ORDER BY id DESC
+    `).all(user.id);
+
+    const reports = db.prepare(`
+        SELECT
+            id,
+            title,
+            author,
+            classification,
+            created_at
+        FROM reports
+        ORDER BY id DESC
+    `).all().filter(report =>
+        canView(user, report.classification)
+    );
+
+    res.json({
+        user: safeUser(user),
+        messages,
+        reports
+    });
+});
+
+// =====================================================
+// ALPHA LOG DASHBOARD
+// =====================================================
+
+app.get(
+    "/api/alpha/logs",
+    alphaLogs,
+    (req, res) => {
+
+        const logs = db.prepare(`
+            SELECT
+                id,
+                actor,
+                actor_label,
+                action,
+                ip,
+                client_id,
+                details,
+                created_at
+            FROM audit
+            ORDER BY id DESC
+            LIMIT 1000
+        `).all();
+
+        res.json({
+            ok: true,
+            logs
+        });
+    }
+);
+
+// =====================================================
+// APPLICATIONS ADMIN
+// =====================================================
+
+app.get(
+    "/api/admin/applications",
+    admin,
+    (req, res) => {
+
+        const applications = db.prepare(`
+            SELECT
+                id,
+                name,
+                age,
+                unit,
+                experience,
+                why,
+                client_id,
+                status,
+                linked_user,
+                created_at,
+                updated_at
+            FROM applications
+            ORDER BY id DESC
+        `).all();
+
+        res.json(applications);
+    }
+);
+
+// =====================================================
+// APPROVE
+// =====================================================
+
+app.post(
+    "/api/admin/application/:id/approve",
+    admin,
+    (req, res) => {
+
+        const application = db
+            .prepare(
+                "SELECT * FROM applications WHERE id = ?"
+            )
+            .get(req.params.id);
+
+        if (!application) {
+            return res.sendStatus(404);
+        }
+
+        if (application.status === "APPROVED") {
+            return res.status(400).json({
+                error: "ALREADY_APPROVED"
+            });
+        }
+
+        let username = cleanUsername(
+            application.name,
+            application.id
+        );
+
+        while (
+            db.prepare(
+                "SELECT id FROM users WHERE username = ?"
+            ).get(username)
+        ) {
+            username =
+                cleanUsername(
+                    application.name,
+                    application.id
+                ) +
+                "_" +
+                crypto
+                    .randomBytes(2)
+                    .toString("hex");
+        }
+
+        const password = randomPassword();
+
+        const rank = "AGENT";
+        const clearance = "RESTRICTED";
+
+        const userResult = db.prepare(`
+            INSERT INTO users
+            (
+                username,
+                password,
+                rank,
+                unit,
+                clearance,
+                in_game_name,
+                client_id
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        `).run(
+            username,
+            bcrypt.hashSync(password, 12),
+            rank,
+            application.unit,
+            clearance,
+            application.name,
+            application.client_id
+        );
+
+        db.prepare(`
+            UPDATE applications
+            SET
+                status = ?,
+                linked_user = ?,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        `).run(
+            "APPROVED",
+            userResult.lastInsertRowid,
+            application.id
+        );
+
+        const body =
+`Your CIA application has been APPROVED.
+
+USERNAME: ${username}
+PASSWORD: ${password}
+UNIT: ${application.unit}
+RANK: ${rank}
+CLEARANCE: ${clearance}
+CLIENT ID: ${application.client_id || "ERROR"}
+
+Keep these credentials private.`;
+
+        db.prepare(`
+            INSERT INTO messages
+            (
+                sender_id,
+                sender_label,
+                recipient_user,
+                recipient_application,
+                subject,
+                body,
+                type
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        `).run(
+            req.session.user.id,
+            req.session.user.rank,
+            userResult.lastInsertRowid,
+            application.id,
+            "ACCOUNT ISSUED",
+            body,
+            "CREDENTIALS"
+        );
+
+        audit(
+            req,
+            "APPLICATION_APPROVED",
+            `application=${application.id};user=${username};newUser=${userResult.lastInsertRowid}`,
+            application.client_id
+        );
+
+        res.json({
+            ok: true,
+            username,
+            password,
+            client_id: application.client_id || "ERROR"
+        });
+    }
+);
+
+// =====================================================
+// REJECT
+// =====================================================
+
+app.post(
+    "/api/admin/application/:id/reject",
+    admin,
+    (req, res) => {
+
+        const application = db
+            .prepare(
+                "SELECT * FROM applications WHERE id = ?"
+            )
+            .get(req.params.id);
+
+        if (!application) {
+            return res.sendStatus(404);
+        }
+
+        db.prepare(`
+            UPDATE applications
+            SET
+                status = ?,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        `).run(
+            "REJECTED",
+            req.params.id
+        );
+
+        audit(
+            req,
+            "APPLICATION_REJECTED",
+            `application=${req.params.id}`,
+            application.client_id
+        );
+
+        res.json({
+            ok: true
+        });
+    }
+);
+
+// =====================================================
+// ADMIN USERS
+// =====================================================
+
+app.get(
+    "/api/admin/users",
+    admin,
+    (req, res) => {
+
+        const users = db.prepare(`
+            SELECT
+                id,
+                username,
+                in_game_name,
+                rank,
+                unit,
+                clearance,
+                client_id,
+                created_at
+            FROM users
+            WHERE username != 'log'
+            ORDER BY id DESC
+        `).all();
+
+        res.json(users);
+    }
+);
+
+// =====================================================
+// CREATE USER
+// =====================================================
+
+app.post(
+    "/api/admin/users",
+    command,
+    (req, res) => {
+
+        const {
+            username,
+            password,
+            rank,
+            unit,
+            clearance,
+            in_game_name,
+            client_id
+        } = req.body;
+
+        if (
+            !username ||
+            !password ||
+            !RANKS.includes(rank) ||
+            rank === "ALPHA" ||
+            !unit ||
+            !Object.prototype.hasOwnProperty.call(
+                clearanceRank,
+                clearance
+            )
+        ) {
+            return res.status(400).json({
+                error: "INVALID_DATA"
+            });
+        }
+
+        try {
+
+            const result = db.prepare(`
+                INSERT INTO users
+                (
+                    username,
+                    password,
+                    rank,
+                    unit,
+                    clearance,
+                    in_game_name,
+                    client_id
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            `).run(
+                username,
+                bcrypt.hashSync(password, 12),
+                rank,
+                unit,
+                clearance,
+                in_game_name || username,
+                normalizeClientId(client_id)
+            );
+
+            audit(
+                req,
+                "USER_CREATED",
+                `user=${username};rank=${rank}`,
+                client_id
+            );
+
+            res.json({
+                ok: true,
+                id: result.lastInsertRowid
+            });
+
+        } catch {
+            res.status(400).json({
+                error: "USERNAME_EXISTS"
+            });
+        }
+    }
+);
+
+// =====================================================
+// SEND MESSAGE
+// =====================================================
+
+app.post(
+    "/api/admin/message",
+    admin,
+    (req, res) => {
+
+        const {
+            target,
+            subject,
+            body,
+            type = "MESSAGE"
+        } = req.body;
+
+        if (!target || !subject || !body) {
+            return res.status(400).json({
+                error: "MISSING_FIELDS"
+            });
+        }
+
+        if (String(target).startsWith("app:")) {
+
+            const id = Number(
+                String(target).slice(4)
+            );
+
+            const application = db
+                .prepare(
+                    "SELECT * FROM applications WHERE id = ?"
+                )
+                .get(id);
+
+            if (!application) {
+                return res.status(404).json({
+                    error: "APPLICATION_NOT_FOUND"
+                });
+            }
+
+            db.prepare(`
+                INSERT INTO messages
+                (
+                    sender_id,
+                    sender_label,
+                    recipient_application,
+                    subject,
+                    body,
+                    type
+                )
+                VALUES (?, ?, ?, ?, ?, ?)
+            `).run(
+                req.session.user.id,
+                req.session.user.rank,
+                id,
+                subject,
+                body,
+                type
+            );
+
+            audit(
+                req,
+                "APPLICATION_MESSAGE_SENT",
+                `application=${id};type=${type};subject=${subject}`,
+                application.client_id
+            );
+
+            return res.json({
+                ok: true
+            });
+        }
+
+        const user = db
+            .prepare(
+                "SELECT * FROM users WHERE username = ?"
+            )
+            .get(target);
+
+        if (!user) {
+            return res.status(404).json({
+                error: "USER_NOT_FOUND"
+            });
+        }
+
+        db.prepare(`
+            INSERT INTO messages
+            (
+                sender_id,
+                sender_label,
+                recipient_user,
+                subject,
+                body,
+                type
+            )
+            VALUES (?, ?, ?, ?, ?, ?)
+        `).run(
+            req.session.user.id,
+            req.session.user.rank,
+            user.id,
+            subject,
+            body,
+            type
+        );
+
+        audit(
+            req,
+            "MESSAGE_SENT",
+            `to=${target};type=${type};subject=${subject}`,
+            user.client_id
+        );
+
+        res.json({
+            ok: true
+        });
+    }
+);
+
+// =====================================================
+// REPORT UPLOAD
+// =====================================================
+
+app.post(
+    "/api/admin/reports",
+    admin,
+    upload.single("pdf"),
+    (req, res) => {
+
+        if (!req.body.title || !req.file) {
+            return res.status(400).json({
+                error: "TITLE_AND_PDF_REQUIRED"
+            });
+        }
+
+        const finalPath = path.join(
+            uploads,
+            req.file.filename + ".pdf"
+        );
+
+        fs.renameSync(
+            req.file.path,
+            finalPath
+        );
+
+        const result = db.prepare(`
+            INSERT INTO reports
+            (
+                title,
+                author,
+                classification,
+                file
+            )
+            VALUES (?, ?, ?, ?)
+        `).run(
+            req.body.title,
+            req.session.user.id,
+            req.body.classification || "CONFIDENTIAL",
+            finalPath
+        );
+
+        audit(
+            req,
+            "REPORT_REGISTERED",
+            `report=${result.lastInsertRowid};title=${req.body.title}`
+        );
+
+        res.json({
+            ok: true,
+            id: result.lastInsertRowid
+        });
+    }
+);
+
+// =====================================================
+// VIEW REPORT
+// =====================================================
+
+app.get(
+    "/api/reports/:id",
+    auth,
+    (req, res) => {
+
+        if (req.session.user.username === "log") {
+            return res.status(403).json({
+                error: "ALPHA_LOG_NO_REPORTS"
+            });
+        }
+
+        const report = db
+            .prepare(
+                "SELECT * FROM reports WHERE id = ?"
+            )
+            .get(req.params.id);
+
+        if (
+            !report ||
+            !canView(
+                req.session.user,
+                report.classification
+            ) ||
+            !fs.existsSync(report.file)
+        ) {
+            return res.sendStatus(404);
+        }
+
+        audit(
+            req,
+            "REPORT_VIEWED",
+            `report=${report.id}`
+        );
+
+        res.type("application/pdf");
+
+        res.sendFile(
+            path.resolve(report.file)
+        );
+    }
+);
+
+// =====================================================
+// OLD COMMAND AUDIT
+// KEPT FOR COMPATIBILITY
+// =====================================================
+
+app.get(
+    "/api/command/audit",
+    command,
+    (req, res) => {
+
+        const logs = db.prepare(`
+            SELECT
+                id,
+                actor,
+                actor_label,
+                action,
+                ip,
+                client_id,
+                details,
+                created_at
+            FROM audit
+            ORDER BY id DESC
+            LIMIT 1000
+        `).all();
+
+        res.json({
+            ok: true,
+            logs
+        });
+    }
+);
+
+// =====================================================
+// ADMIN LOG ENDPOINT
+// COMMAND ONLY
+// =====================================================
+
+app.get(
+    "/api/admin/logs",
+    command,
+    (req, res) => {
+
+        const logs = db.prepare(`
+            SELECT
+                id,
+                actor,
+                actor_label,
+                action,
+                ip,
+                client_id,
+                details,
+                created_at
+            FROM audit
+            ORDER BY id DESC
+            LIMIT 1000
+        `).all();
+
+        res.json({
+            ok: true,
+            logs
+        });
+    }
+);
+
+// =====================================================
+// SECTOR
+// =====================================================
+
+app.get(
+    "/api/sector",
+    auth,
+    (req, res) => {
+
+        if (req.session.user.username === "log") {
+            return res.status(403).json({
+                error: "ALPHA_LOG_NO_SECTOR"
+            });
+        }
+
+        const users = db.prepare(`
+            SELECT
+                id,
+                username,
+                in_game_name,
+                rank,
+                unit,
+                clearance,
+                created_at
+            FROM users
+            WHERE username != 'log'
+            ORDER BY
+                CASE rank
+                    WHEN "COMMAND OF CIA" THEN 1
+                    WHEN "AGENT OFFICER" THEN 2
+                    ELSE 3
+                END,
+                id
+        `).all();
+
+        res.json(users);
+    }
+);
+
+// =====================================================
+// STATIC
+// =====================================================
+
+app.use(
+    express.static(
+        path.join(__dirname, "public")
+    )
+);
+
+// =====================================================
+// INDEX
+// =====================================================
+
+app.get("/", (req, res) => {
+
+    const indexPath = path.join(
+        __dirname,
+        "public",
+        "index.html"
+    );
+
+    if (!fs.existsSync(indexPath)) {
+        return res.status(404).send(
+            "index.html not found. Make sure public/index.html exists."
+        );
+    }
+
+    res.sendFile(indexPath);
+});
+
+// =====================================================
+// ERROR
+// =====================================================
+
+app.use(
+    (err, req, res, next) => {
+
+        console.error(err);
+
+        if (res.headersSent) {
+            return next(err);
+        }
+
+        res.status(500).json({
+            error: "SERVER_ERROR",
+            message:
+                process.env.NODE_ENV === "development"
+                    ? err.message
+                    : "Internal server error"
+        });
+    }
+);
+
+// =====================================================
+// START
+// =====================================================
+
+app.listen(
+    PORT,
+    HOST,
+    () => {
+
+        console.log(
+            `CIA RP running on http://${HOST}:${PORT}`
+        );
+
+        console.log(
+            `Public folder: ${path.join(__dirname, "public")}`
+        );
+
+        console.log(
+            `Database: ${dbPath}`
+        );
+
+        console.log(
+            `ALPHA LOG ACCOUNT: log / log_1`
+        );
+    }
+);
+```
