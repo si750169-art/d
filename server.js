@@ -1,430 +1,442 @@
 const express = require("express");
 const session = require("express-session");
-const SQLiteStore = require("connect-sqlite3")(session);
-const Database = require("better-sqlite3");
 const bcrypt = require("bcryptjs");
-const cookieParser = require("cookie-parser");
+const Database = require("better-sqlite3");
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
+const crypto = require("crypto");
 
 const app = express();
 
 const PORT = Number(process.env.PORT || 3000);
+const HOST = process.env.HOST || "0.0.0.0";
 
-/*
-|--------------------------------------------------------------------------
-| PATHS
-|--------------------------------------------------------------------------
-|
-| Render:
-| DATA_DIR can be configured to a persistent disk path.
-|
-| Local:
-| ./data will be used automatically.
-|
-*/
+app.set("trust proxy", true);
 
-const DATA_DIR =
-    process.env.DATA_DIR ||
-    path.join(__dirname, "data");
+app.use(express.json({ limit: "2mb" }));
+app.use(express.urlencoded({ extended: true }));
 
-const PUBLIC_DIR =
-    path.join(__dirname, "public");
+// =====================================================
+// DATABASE
+// =====================================================
 
-const UPLOAD_DIR =
-    path.join(DATA_DIR, "reports");
-
-fs.mkdirSync(DATA_DIR, { recursive: true });
-fs.mkdirSync(UPLOAD_DIR, { recursive: true });
-fs.mkdirSync(PUBLIC_DIR, { recursive: true });
-
-/*
-|--------------------------------------------------------------------------
-| DATABASE
-|--------------------------------------------------------------------------
-*/
-
-const dbPath = path.join(DATA_DIR, "cia.sqlite");
-
+const dbPath = path.join(__dirname, "cia.db");
 const db = new Database(dbPath);
 
 db.pragma("journal_mode = WAL");
-db.pragma("foreign_keys = ON");
 
 db.exec(`
 CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-
-    username TEXT NOT NULL UNIQUE,
-    password_hash TEXT NOT NULL,
-
-    in_game_name TEXT NOT NULL DEFAULT '',
-    rank TEXT NOT NULL DEFAULT 'AGENT',
-    unit TEXT NOT NULL DEFAULT 'Intelligence Operations',
-    clearance TEXT NOT NULL DEFAULT 'RESTRICTED',
-
-    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    username TEXT UNIQUE NOT NULL,
+    password TEXT NOT NULL,
+    rank TEXT NOT NULL,
+    unit TEXT NOT NULL,
+    clearance TEXT NOT NULL,
+    in_game_name TEXT,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS applications (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-
     name TEXT NOT NULL,
     age INTEGER NOT NULL,
     unit TEXT NOT NULL,
-
     experience TEXT NOT NULL,
     why TEXT NOT NULL,
-
-    status TEXT NOT NULL DEFAULT 'PENDING',
-
-    applicant_token TEXT NOT NULL UNIQUE,
-
-    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    status TEXT DEFAULT 'PENDING',
+    dashboard_token TEXT UNIQUE NOT NULL,
+    linked_user INTEGER,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(linked_user) REFERENCES users(id)
 );
 
 CREATE TABLE IF NOT EXISTS messages (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-
-    user_id INTEGER,
-    application_id INTEGER,
-
+    sender_id INTEGER,
     sender_label TEXT NOT NULL,
-
+    recipient_user INTEGER,
+    recipient_application INTEGER,
     subject TEXT NOT NULL,
     body TEXT NOT NULL,
-
-    type TEXT NOT NULL DEFAULT 'MESSAGE',
-
-    read INTEGER NOT NULL DEFAULT 0,
-
-    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
-    FOREIGN KEY(user_id)
-        REFERENCES users(id)
-        ON DELETE CASCADE,
-
-    FOREIGN KEY(application_id)
-        REFERENCES applications(id)
-        ON DELETE CASCADE
+    type TEXT DEFAULT 'MESSAGE',
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    read INTEGER DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS reports (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-
     title TEXT NOT NULL,
+    author INTEGER NOT NULL,
     classification TEXT NOT NULL,
-
-    filename TEXT NOT NULL,
-    filepath TEXT NOT NULL,
-
-    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE IF NOT EXISTS visits (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-
-    ip TEXT NOT NULL,
-
-    user_agent TEXT,
-    language TEXT,
-    timezone TEXT,
-
-    path TEXT,
-
-    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    file TEXT NOT NULL,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS audit (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-
-    actor_label TEXT NOT NULL,
+    actor INTEGER,
+    actor_label TEXT,
     action TEXT NOT NULL,
-
     ip TEXT,
-
     details TEXT,
-
-    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
 `);
 
-/*
-|--------------------------------------------------------------------------
-| DEFAULT COMMAND ACCOUNT
-|--------------------------------------------------------------------------
-|
-| Create a command account automatically if it doesn't exist.
-|
-| Change these through Render Environment Variables.
-|
-*/
+// =====================================================
+// UPLOADS
+// =====================================================
 
-const DEFAULT_ADMIN_USERNAME =
-    process.env.ADMIN_USERNAME || "command_cia";
+const uploads = path.join(__dirname, "uploads");
 
-const DEFAULT_ADMIN_PASSWORD =
-    process.env.ADMIN_PASSWORD || "ChangeThisPassword123!";
-
-const existingAdmin = db
-    .prepare(
-        "SELECT id FROM users WHERE username = ?"
-    )
-    .get(DEFAULT_ADMIN_USERNAME);
-
-if (!existingAdmin) {
-
-    const passwordHash =
-        bcrypt.hashSync(
-            DEFAULT_ADMIN_PASSWORD,
-            12
-        );
-
-    db.prepare(`
-        INSERT INTO users
-        (
-            username,
-            password_hash,
-            in_game_name,
-            rank,
-            unit,
-            clearance
-        )
-        VALUES (?, ?, ?, ?, ?, ?)
-    `).run(
-        DEFAULT_ADMIN_USERNAME,
-        passwordHash,
-        "CIA COMMAND",
-        "COMMAND OF CIA",
-        "Command",
-        "OMEGA"
-    );
-
-    console.log(
-        `Created command account: ${DEFAULT_ADMIN_USERNAME}`
-    );
+if (!fs.existsSync(uploads)) {
+    fs.mkdirSync(uploads, { recursive: true });
 }
 
-/*
-|--------------------------------------------------------------------------
-| EXPRESS
-|--------------------------------------------------------------------------
-*/
-
-app.set("trust proxy", 1);
-
-app.use(express.json({
-    limit: "2mb"
-}));
-
-app.use(express.urlencoded({
-    extended: true
-}));
-
-app.use(cookieParser());
-
-/*
-|--------------------------------------------------------------------------
-| SESSION
-|--------------------------------------------------------------------------
-*/
+// =====================================================
+// SESSION
+// =====================================================
 
 app.use(
     session({
-        store: new SQLiteStore({
-            db: "sessions.sqlite",
-            dir: DATA_DIR
-        }),
-
         secret:
             process.env.SESSION_SECRET ||
-            "CHANGE_THIS_SESSION_SECRET_123456789",
+            "CHANGE_THIS_TO_A_LONG_RANDOM_SECRET_2026",
 
         resave: false,
-
         saveUninitialized: false,
 
         cookie: {
             httpOnly: true,
-
-            secure:
-                process.env.NODE_ENV === "production",
-
+            secure: process.env.NODE_ENV === "production",
             sameSite: "lax",
-
-            maxAge:
-                7 * 24 * 60 * 60 * 1000
+            maxAge: 1000 * 60 * 60 * 24 * 30
         }
     })
 );
 
-/*
-|--------------------------------------------------------------------------
-| IP
-|--------------------------------------------------------------------------
-*/
+// =====================================================
+// IP
+// =====================================================
 
 function getClientIP(req) {
+    const cf = req.headers["cf-connecting-ip"];
 
-    const forwarded =
-        req.headers["x-forwarded-for"];
+    if (cf) {
+        return String(cf).trim();
+    }
+
+    const forwarded = req.headers["x-forwarded-for"];
 
     if (forwarded) {
-
-        return forwarded
+        return String(forwarded)
             .split(",")[0]
-            .trim();
+            .trim()
+            .replace("::ffff:", "");
     }
 
-    return (
-        req.socket.remoteAddress ||
-        req.ip ||
-        "UNKNOWN"
-    );
+    return String(req.socket.remoteAddress || "unknown")
+        .replace("::ffff:", "")
+        .trim();
 }
 
-/*
-|--------------------------------------------------------------------------
-| VISITOR LOG
-|--------------------------------------------------------------------------
-|
-| Logs the visitor's IP when they first enter the website
-| during their current session.
-|
-*/
+app.use((req, res, next) => {
+    req.visitorIP = getClientIP(req);
+    next();
+});
+
+// =====================================================
+// COOKIE PARSER
+// =====================================================
 
 app.use((req, res, next) => {
+    const raw = req.headers.cookie || "";
 
-    const ignored =
-        req.path.startsWith("/api/") ||
-        req.path.startsWith("/reports/") ||
-        req.path.startsWith("/auth/") ||
-        req.path.includes(".") ||
-        req.path === "/favicon.ico";
+    req.cookies = {};
 
-    if (
-        !ignored &&
-        !req.session.visitLogged
-    ) {
+    raw.split(";").forEach((item) => {
+        const index = item.indexOf("=");
 
-        const ip =
-            getClientIP(req);
+        if (index <= 0) return;
 
-        const userAgent =
-            req.headers["user-agent"] || null;
+        const key = item.slice(0, index).trim();
+        const value = item.slice(index + 1).trim();
 
-        const language =
-            req.headers["accept-language"] || null;
-
-        db.prepare(`
-            INSERT INTO visits
-            (
-                ip,
-                user_agent,
-                language,
-                path
-            )
-            VALUES (?, ?, ?, ?)
-        `).run(
-            ip,
-            userAgent,
-            language,
-            req.path
-        );
-
-        req.session.visitLogged = true;
-    }
+        try {
+            req.cookies[key] = decodeURIComponent(value);
+        } catch {
+            req.cookies[key] = value;
+        }
+    });
 
     next();
 });
 
-/*
-|--------------------------------------------------------------------------
-| AUDIT
-|--------------------------------------------------------------------------
-*/
+// =====================================================
+// RANKS
+// =====================================================
 
-function audit(
-    actor,
-    action,
-    req,
-    details = ""
-) {
+const RANKS = [
+    "AGENT",
+    "AGENT OFFICER",
+    "COMMAND OF CIA",
+    "ALPHA"
+];
 
-    db.prepare(`
-        INSERT INTO audit
-        (
-            actor_label,
-            action,
-            ip,
-            details
-        )
-        VALUES (?, ?, ?, ?)
-    `).run(
-        actor,
-        action,
-        getClientIP(req),
-        details
+// مهم:
+// ALPHA ليست رتبة يستطيع الموقع إعطاءها.
+// الحساب الوحيد الذي يحصل عليها يتم إنشاؤه هنا في الكود.
+
+const ADMIN = [
+    "AGENT OFFICER",
+    "COMMAND OF CIA"
+];
+
+const COMMAND = [
+    "COMMAND OF CIA"
+];
+
+const ALPHA_USERNAME = "log";
+const ALPHA_RANK = "ALPHA";
+
+const clearanceRank = {
+    RESTRICTED: 1,
+    CONFIDENTIAL: 2,
+    SECRET: 3,
+    "TOP SECRET": 4,
+    OMEGA: 5
+};
+
+// =====================================================
+// UPLOAD
+// =====================================================
+
+const upload = multer({
+    dest: uploads,
+
+    limits: {
+        fileSize: 20 * 1024 * 1024
+    },
+
+    fileFilter: (req, file, cb) => {
+        if (file.mimetype !== "application/pdf") {
+            return cb(new Error("ONLY_PDF_ALLOWED"));
+        }
+
+        cb(null, true);
+    }
+});
+
+// =====================================================
+// HELPERS
+// =====================================================
+
+function ip(req) {
+    return req.visitorIP || getClientIP(req);
+}
+
+function safeUser(user) {
+    if (!user) return null;
+
+    const copy = { ...user };
+
+    delete copy.password;
+
+    return copy;
+}
+
+function cleanUsername(name, id) {
+    const base = String(name)
+        .toLowerCase()
+        .replace(/[^a-z0-9_-]/g, "")
+        .slice(0, 18);
+
+    return (
+        (base || "agent") +
+        "_" +
+        String(id).padStart(3, "0")
     );
 }
 
-/*
-|--------------------------------------------------------------------------
-| AUTH HELPERS
-|--------------------------------------------------------------------------
-*/
+function randomPassword() {
+    return crypto.randomBytes(6).toString("base64url") + "!9";
+}
 
-function requireLogin(req, res, next) {
+function canView(user, classification) {
+    return (
+        (clearanceRank[user.clearance] || 0) >=
+        (clearanceRank[classification] || 99)
+    );
+}
 
+// =====================================================
+// AUDIT
+// =====================================================
+
+function audit(req, action, details = "") {
+    const user = req.session?.user;
+
+    try {
+        db.prepare(`
+            INSERT INTO audit
+            (
+                actor,
+                actor_label,
+                action,
+                ip,
+                details
+            )
+            VALUES (?, ?, ?, ?, ?)
+        `).run(
+            user?.id || null,
+            user?.username || user?.rank || "PUBLIC",
+            action,
+            ip(req),
+            details
+        );
+    } catch (error) {
+        console.error("AUDIT ERROR:", error);
+    }
+}
+
+// =====================================================
+// COMMAND ACCOUNT
+// =====================================================
+
+function ensureCommand() {
+    const existing = db
+        .prepare("SELECT * FROM users WHERE username = ?")
+        .get("code_alpha");
+
+    if (!existing) {
+        const passwordHash = bcrypt.hashSync(
+            "cia command91",
+            12
+        );
+
+        db.prepare(`
+            INSERT INTO users
+            (
+                username,
+                password,
+                rank,
+                unit,
+                clearance,
+                in_game_name
+            )
+            VALUES (?, ?, ?, ?, ?, ?)
+        `).run(
+            "code_alpha",
+            passwordHash,
+            "COMMAND OF CIA",
+            "CIA COMMAND",
+            "OMEGA",
+            "code_alpha"
+        );
+
+        console.log("COMMAND ACCOUNT CREATED");
+    }
+}
+
+// =====================================================
+// ALPHA LOG ACCOUNT
+// =====================================================
+
+function ensureAlphaLogAccount() {
+    const existing = db
+        .prepare("SELECT * FROM users WHERE username = ?")
+        .get(ALPHA_USERNAME);
+
+    if (!existing) {
+        const passwordHash = bcrypt.hashSync(
+            "log_1",
+            12
+        );
+
+        db.prepare(`
+            INSERT INTO users
+            (
+                username,
+                password,
+                rank,
+                unit,
+                clearance,
+                in_game_name
+            )
+            VALUES (?, ?, ?, ?, ?, ?)
+        `).run(
+            ALPHA_USERNAME,
+            passwordHash,
+            ALPHA_RANK,
+            "CIA LOGISTICS",
+            "OMEGA",
+            "ALPHA"
+        );
+
+        console.log(
+            "ALPHA LOG ACCOUNT CREATED: log"
+        );
+    } else {
+
+        /*
+         * نتأكد أن الحساب لا يتحول إلى Agent
+         * حتى لو كان موجودًا في قاعدة بيانات قديمة.
+         */
+
+        db.prepare(`
+            UPDATE users
+            SET
+                rank = ?,
+                unit = ?,
+                clearance = ?
+            WHERE username = ?
+        `).run(
+            ALPHA_RANK,
+            "CIA LOGISTICS",
+            "OMEGA",
+            ALPHA_USERNAME
+        );
+    }
+}
+
+ensureCommand();
+ensureAlphaLogAccount();
+
+// =====================================================
+// MIDDLEWARE
+// =====================================================
+
+function auth(req, res, next) {
     if (!req.session.user) {
-
         return res.status(401).json({
-            error: "NOT_AUTHENTICATED"
+            error: "AUTH_REQUIRED"
         });
     }
 
     next();
 }
 
-function requireAdmin(req, res, next) {
-
-    if (!req.session.user) {
-
-        return res.status(401).json({
-            error: "NOT_AUTHENTICATED"
-        });
-    }
-
+function admin(req, res, next) {
     if (
-        req.session.user.rank !==
-            "AGENT OFFICER" &&
-        req.session.user.rank !==
-            "COMMAND OF CIA"
+        !req.session.user ||
+        !ADMIN.includes(req.session.user.rank)
     ) {
-
         return res.status(403).json({
-            error: "NOT_AUTHORIZED"
+            error: "FORBIDDEN"
         });
     }
 
     next();
 }
 
-function requireCommand(req, res, next) {
-
-    if (!req.session.user) {
-
-        return res.status(401).json({
-            error: "NOT_AUTHENTICATED"
-        });
-    }
-
+function command(req, res, next) {
     if (
-        req.session.user.rank !==
-        "COMMAND OF CIA"
+        !req.session.user ||
+        req.session.user.username !== "code_alpha"
     ) {
-
         return res.status(403).json({
             error: "COMMAND_ONLY"
         });
@@ -433,266 +445,208 @@ function requireCommand(req, res, next) {
     next();
 }
 
-/*
-|--------------------------------------------------------------------------
-| APPLICATION TOKEN
-|--------------------------------------------------------------------------
-*/
+// =====================================================
+// ALPHA LOG ACCESS
+// =====================================================
 
-function generateToken() {
+function alpha(req, res, next) {
+    if (
+        !req.session.user ||
+        req.session.user.username !== ALPHA_USERNAME ||
+        req.session.user.rank !== ALPHA_RANK
+    ) {
+        return res.status(403).json({
+            error: "ALPHA_ONLY"
+        });
+    }
 
-    return (
-        require("crypto")
-            .randomBytes(32)
-            .toString("hex")
-    );
+    next();
 }
 
-/*
-|--------------------------------------------------------------------------
-| APPLICATION
-|--------------------------------------------------------------------------
-*/
+// =====================================================
+// APPLICATIONS
+// =====================================================
 
-app.post(
-    "/api/applications",
-    (req, res) => {
+app.post("/api/applications", (req, res) => {
+    try {
+        const {
+            name,
+            age,
+            unit,
+            experience,
+            why
+        } = req.body;
 
-        try {
+        if (
+            !name ||
+            !age ||
+            !unit ||
+            !experience ||
+            !why
+        ) {
+            return res.status(400).json({
+                error: "MISSING_FIELDS"
+            });
+        }
 
-            const {
+        const token = crypto
+            .randomBytes(32)
+            .toString("hex");
+
+        const result = db.prepare(`
+            INSERT INTO applications
+            (
                 name,
                 age,
                 unit,
                 experience,
-                why
-            } = req.body;
+                why,
+                dashboard_token
+            )
+            VALUES (?, ?, ?, ?, ?, ?)
+        `).run(
+            String(name).trim(),
+            Number(age),
+            String(unit),
+            String(experience).trim(),
+            String(why).trim(),
+            token
+        );
 
-            if (
-                !name ||
-                !age ||
-                !unit ||
-                !experience ||
-                !why
-            ) {
+        audit(
+            req,
+            "APPLICATION_SUBMITTED",
+            `application=${result.lastInsertRowid}`
+        );
 
-                return res.status(400).json({
-                    error: "MISSING_FIELDS"
-                });
+        res.cookie(
+            "cia_application",
+            token,
+            {
+                httpOnly: true,
+                sameSite: "lax",
+                maxAge: 1000 * 60 * 60 * 24 * 365
             }
-
-            const token =
-                generateToken();
-
-            const result =
-                db.prepare(`
-                    INSERT INTO applications
-                    (
-                        name,
-                        age,
-                        unit,
-                        experience,
-                        why,
-                        applicant_token
-                    )
-                    VALUES (?, ?, ?, ?, ?, ?)
-                `).run(
-                    String(name).trim(),
-                    Number(age),
-                    String(unit).trim(),
-                    String(experience).trim(),
-                    String(why).trim(),
-                    token
-                );
-
-            audit(
-                "PUBLIC APPLICANT",
-                "APPLICATION_SUBMITTED",
-                req,
-                `Application #${result.lastInsertRowid}`
-            );
-
-            res.json({
-                success: true,
-                token
-            });
-
-        } catch (error) {
-
-            console.error(
-                "APPLICATION ERROR:",
-                error
-            );
-
-            res.status(500).json({
-                error: "APPLICATION_FAILED"
-            });
-        }
-    }
-);
-
-/*
-|--------------------------------------------------------------------------
-| APPLICATION COOKIE
-|--------------------------------------------------------------------------
-*/
-
-function getApplicationToken(req) {
-
-    const cookie =
-        req.headers.cookie || "";
-
-    const match =
-        cookie.match(
-            /(?:^|;\s*)cia_application=([^;]+)/
         );
-
-    if (!match) {
-        return null;
-    }
-
-    try {
-
-        return decodeURIComponent(
-            match[1]
-        );
-
-    } catch {
-
-        return null;
-    }
-}
-
-/*
-|--------------------------------------------------------------------------
-| APPLICATION ME
-|--------------------------------------------------------------------------
-*/
-
-app.get(
-    "/api/application/me",
-    (req, res) => {
-
-        const token =
-            getApplicationToken(req);
-
-        if (!token) {
-
-            return res.json({
-                application: null
-            });
-        }
-
-        const application =
-            db.prepare(`
-                SELECT
-                    id,
-                    name,
-                    age,
-                    unit,
-                    experience,
-                    why,
-                    status,
-                    created_at
-                FROM applications
-                WHERE applicant_token = ?
-            `).get(token);
-
-        if (!application) {
-
-            return res.json({
-                application: null
-            });
-        }
-
-        const messages =
-            db.prepare(`
-                SELECT
-                    id,
-                    subject,
-                    body,
-                    type,
-                    sender_label,
-                    read,
-                    created_at
-                FROM messages
-                WHERE application_id = ?
-                ORDER BY id DESC
-            `).all(application.id);
-
-        let credentials = null;
-
-        if (
-            application.status ===
-            "APPROVED"
-        ) {
-
-            credentials =
-                db.prepare(`
-                    SELECT
-                        username,
-                        rank,
-                        unit
-                    FROM users
-                    WHERE in_game_name = ?
-                    ORDER BY id DESC
-                    LIMIT 1
-                `).get(application.name);
-        }
 
         res.json({
-            application,
-            messages,
-            credentials:
-                credentials || null
+            ok: true,
+            id: result.lastInsertRowid,
+            token
+        });
+    } catch (error) {
+        console.error(error);
+
+        res.status(500).json({
+            error: "SERVER_ERROR"
         });
     }
-);
+});
 
-/*
-|--------------------------------------------------------------------------
-| LOGIN
-|--------------------------------------------------------------------------
-*/
+// =====================================================
+// APPLICATION ME
+// =====================================================
 
-app.post(
-    "/api/login",
-    (req, res) => {
+app.get("/api/application/me", (req, res) => {
+    const token =
+        req.cookies?.cia_application ||
+        req.headers["x-application-token"] ||
+        req.query.token;
 
-        const {
-            username,
-            password
-        } = req.body;
+    if (!token) {
+        return res.json({
+            application: null
+        });
+    }
 
-        if (!username || !password) {
+    const application = db.prepare(`
+        SELECT
+            id,
+            name,
+            age,
+            unit,
+            experience,
+            why,
+            status,
+            linked_user,
+            created_at,
+            updated_at
+        FROM applications
+        WHERE dashboard_token = ?
+    `).get(token);
 
-            return res.status(400).json({
-                error: "MISSING_CREDENTIALS"
-            });
-        }
+    if (!application) {
+        return res.json({
+            application: null
+        });
+    }
 
-        const user =
-            db.prepare(`
-                SELECT *
-                FROM users
-                WHERE username = ?
-            `).get(
-                String(username).trim()
-            );
+    const messages = db.prepare(`
+        SELECT
+            id,
+            sender_label,
+            subject,
+            body,
+            type,
+            created_at,
+            read
+        FROM messages
+        WHERE recipient_application = ?
+        ORDER BY id DESC
+    `).all(application.id);
+
+    let credentials = null;
+
+    if (application.linked_user) {
+        credentials = db.prepare(`
+            SELECT
+                username,
+                rank,
+                unit,
+                clearance
+            FROM users
+            WHERE id = ?
+        `).get(application.linked_user);
+    }
+
+    res.json({
+        application,
+        messages,
+        credentials
+    });
+});
+
+// =====================================================
+// LOGIN
+// =====================================================
+
+app.post("/api/login", (req, res, next) => {
+    try {
+        const username = String(
+            req.body.username || ""
+        ).trim();
+
+        const password = String(
+            req.body.password || ""
+        );
+
+        const user = db
+            .prepare(
+                "SELECT * FROM users WHERE username = ?"
+            )
+            .get(username);
 
         if (
             !user ||
             !bcrypt.compareSync(
                 password,
-                user.password_hash
+                user.password
             )
         ) {
-
             audit(
-                "UNKNOWN",
-                "LOGIN_FAILED",
                 req,
-                `Username: ${String(username).slice(0, 80)}`
+                "LOGIN_FAILED",
+                `username=${username}`
             );
 
             return res.status(401).json({
@@ -700,534 +654,381 @@ app.post(
             });
         }
 
-        req.session.user = {
-            id: user.id,
-            username: user.username,
-            in_game_name:
-                user.in_game_name,
-            rank: user.rank,
-            unit: user.unit,
-            clearance:
-                user.clearance
-        };
+        req.session.regenerate((error) => {
+            if (error) {
+                return next(error);
+            }
 
-        audit(
-            user.username,
-            "LOGIN",
-            req
-        );
+            req.session.user = user;
 
-        req.session.save(
-            () => {
+            req.session.save((saveError) => {
+                if (saveError) {
+                    return next(saveError);
+                }
+
+                audit(
+                    req,
+                    "LOGIN_SUCCESS",
+                    `rank=${user.rank}`
+                );
+
+                /*
+                 * ALPHA لا يحصل على Dashboard الموظفين.
+                 * الواجهة الأمامية ستقرأ هذا الحقل وتفتح صفحة اللوقات.
+                 */
 
                 res.json({
-                    success: true,
-
-                    user:
-                        req.session.user
+                    user: safeUser(user),
+                    alpha:
+                        user.username === ALPHA_USERNAME &&
+                        user.rank === ALPHA_RANK
                 });
-            }
-        );
+            });
+        });
+    } catch (error) {
+        next(error);
     }
-);
+});
 
-/*
-|--------------------------------------------------------------------------
-| CURRENT USER
-|--------------------------------------------------------------------------
-*/
+// =====================================================
+// LOGOUT
+// =====================================================
 
-app.get(
-    "/api/me",
+app.post("/api/logout", auth, (req, res) => {
+    audit(req, "LOGOUT");
+
+    req.session.destroy(() => {
+        res.json({
+            ok: true
+        });
+    });
+});
+
+// =====================================================
+// CURRENT USER
+// =====================================================
+
+app.get("/api/me", (req, res) => {
+    const user = req.session.user;
+
+    res.json({
+        user: safeUser(user),
+        alpha:
+            !!user &&
+            user.username === ALPHA_USERNAME &&
+            user.rank === ALPHA_RANK
+    });
+});
+
+// =====================================================
+// NORMAL DASHBOARD
+// =====================================================
+
+app.get("/api/dashboard", auth, (req, res) => {
+
+    // منع ALPHA من استخدام Dashboard الموظفين
+    if (
+        req.session.user.username === ALPHA_USERNAME &&
+        req.session.user.rank === ALPHA_RANK
+    ) {
+        return res.status(403).json({
+            error: "ALPHA_LOG_ACCOUNT"
+        });
+    }
+
+    const user = req.session.user;
+
+    const messages = db.prepare(`
+        SELECT
+            id,
+            sender_label,
+            subject,
+            body,
+            type,
+            created_at,
+            read
+        FROM messages
+        WHERE recipient_user = ?
+        ORDER BY id DESC
+    `).all(user.id);
+
+    const reports = db.prepare(`
+        SELECT
+            id,
+            title,
+            author,
+            classification,
+            created_at
+        FROM reports
+        ORDER BY id DESC
+    `).all().filter((report) =>
+        canView(user, report.classification)
+    );
+
+    res.json({
+        user: safeUser(user),
+        messages,
+        reports
+    });
+});
+
+// =====================================================
+// MESSAGE READ
+// =====================================================
+
+app.post(
+    "/api/messages/:id/read",
+    auth,
     (req, res) => {
 
-        if (!req.session.user) {
-
-            return res.json({
-                user: null
+        if (
+            req.session.user.username === ALPHA_USERNAME
+        ) {
+            return res.status(403).json({
+                error: "ALPHA_LOG_ACCOUNT"
             });
         }
 
+        db.prepare(`
+            UPDATE messages
+            SET read = 1
+            WHERE id = ?
+            AND recipient_user = ?
+        `).run(
+            req.params.id,
+            req.session.user.id
+        );
+
         res.json({
-            user:
-                req.session.user
+            ok: true
         });
     }
 );
 
-/*
-|--------------------------------------------------------------------------
-| DASHBOARD
-|--------------------------------------------------------------------------
-*/
-
-app.get(
-    "/api/dashboard",
-    requireLogin,
-    (req, res) => {
-
-        const userId =
-            req.session.user.id;
-
-        const messages =
-            db.prepare(`
-                SELECT
-                    id,
-                    subject,
-                    body,
-                    type,
-                    sender_label,
-                    read,
-                    created_at
-                FROM messages
-                WHERE user_id = ?
-                ORDER BY id DESC
-            `).all(userId);
-
-        const reports =
-            db.prepare(`
-                SELECT
-                    id,
-                    title,
-                    classification,
-                    created_at
-                FROM reports
-                ORDER BY id DESC
-            `).all();
-
-        res.json({
-            messages,
-            reports
-        });
-    }
-);
-
-/*
-|--------------------------------------------------------------------------
-| SECTOR
-|--------------------------------------------------------------------------
-*/
-
-app.get(
-    "/api/sector",
-    requireLogin,
-    (req, res) => {
-
-        const users =
-            db.prepare(`
-                SELECT
-                    username,
-                    in_game_name,
-                    rank,
-                    unit,
-                    clearance
-                FROM users
-                ORDER BY id ASC
-            `).all();
-
-        res.json(users);
-    }
-);
-
-/*
-|--------------------------------------------------------------------------
-| LOGOUT
-|--------------------------------------------------------------------------
-*/
-
-app.post(
-    "/api/logout",
-    requireLogin,
-    (req, res) => {
-
-        const username =
-            req.session.user.username;
-
-        audit(
-            username,
-            "LOGOUT",
-            req
-        );
-
-        req.session.destroy(
-            () => {
-
-                res.clearCookie(
-                    "connect.sid"
-                );
-
-                res.json({
-                    success: true
-                });
-            }
-        );
-    }
-);
-
-/*
-|--------------------------------------------------------------------------
-| ADMIN APPLICATIONS
-|--------------------------------------------------------------------------
-*/
+// =====================================================
+// ADMIN APPLICATIONS
+// =====================================================
 
 app.get(
     "/api/admin/applications",
-    requireAdmin,
+    admin,
     (req, res) => {
-
-        const applications =
-            db.prepare(`
-                SELECT
-                    id,
-                    name,
-                    age,
-                    unit,
-                    experience,
-                    why,
-                    status,
-                    created_at
-                FROM applications
-                ORDER BY id DESC
-            `).all();
+        const applications = db.prepare(`
+            SELECT
+                id,
+                name,
+                age,
+                unit,
+                experience,
+                why,
+                status,
+                linked_user,
+                created_at,
+                updated_at
+            FROM applications
+            ORDER BY id DESC
+        `).all();
 
         res.json(applications);
     }
 );
 
-/*
-|--------------------------------------------------------------------------
-| ADMIN USERS
-|--------------------------------------------------------------------------
-*/
-
-app.get(
-    "/api/admin/users",
-    requireAdmin,
-    (req, res) => {
-
-        const users =
-            db.prepare(`
-                SELECT
-                    id,
-                    username,
-                    in_game_name,
-                    rank,
-                    unit,
-                    clearance,
-                    created_at
-                FROM users
-                ORDER BY id ASC
-            `).all();
-
-        res.json(users);
-    }
-);
-
-/*
-|--------------------------------------------------------------------------
-| APPROVE APPLICATION
-|--------------------------------------------------------------------------
-*/
+// =====================================================
+// APPROVE APPLICATION
+// =====================================================
 
 app.post(
     "/api/admin/application/:id/approve",
-    requireAdmin,
+    admin,
     (req, res) => {
 
-        const id =
-            Number(req.params.id);
-
-        const application =
-            db.prepare(`
-                SELECT *
-                FROM applications
-                WHERE id = ?
-            `).get(id);
+        const application = db
+            .prepare(
+                "SELECT * FROM applications WHERE id = ?"
+            )
+            .get(req.params.id);
 
         if (!application) {
-
-            return res.status(404).json({
-                error: "APPLICATION_NOT_FOUND"
-            });
+            return res.sendStatus(404);
         }
 
-        if (
-            application.status ===
-            "APPROVED"
-        ) {
-
+        if (application.status === "APPROVED") {
             return res.status(400).json({
                 error: "ALREADY_APPROVED"
             });
         }
 
-        const username =
-            "agent_" +
-            String(id).padStart(3, "0");
-
-        let finalUsername =
-            username;
-
-        let counter = 1;
+        let username = cleanUsername(
+            application.name,
+            application.id
+        );
 
         while (
             db.prepare(
                 "SELECT id FROM users WHERE username = ?"
-            ).get(finalUsername)
+            ).get(username)
         ) {
-
-            finalUsername =
-                `${username}_${counter}`;
-
-            counter++;
+            username =
+                cleanUsername(
+                    application.name,
+                    application.id
+                ) +
+                "_" +
+                crypto
+                    .randomBytes(2)
+                    .toString("hex");
         }
 
-        const password =
-            require("crypto")
-                .randomBytes(6)
-                .toString("base64")
-                .replace(/[^a-zA-Z0-9]/g, "")
-                .slice(0, 10);
+        const password = randomPassword();
 
-        const passwordHash =
-            bcrypt.hashSync(
+        const rank = "AGENT";
+        const clearance = "RESTRICTED";
+
+        const userResult = db.prepare(`
+            INSERT INTO users
+            (
+                username,
                 password,
-                12
-            );
-
-        const result =
-            db.prepare(`
-                INSERT INTO users
-                (
-                    username,
-                    password_hash,
-                    in_game_name,
-                    rank,
-                    unit,
-                    clearance
-                )
-                VALUES (?, ?, ?, ?, ?, ?)
-            `).run(
-                finalUsername,
-                passwordHash,
-                application.name,
-                "AGENT",
-                application.unit,
-                "RESTRICTED"
-            );
+                rank,
+                unit,
+                clearance,
+                in_game_name
+            )
+            VALUES (?, ?, ?, ?, ?, ?)
+        `).run(
+            username,
+            bcrypt.hashSync(password, 12),
+            rank,
+            application.unit,
+            clearance,
+            application.name
+        );
 
         db.prepare(`
             UPDATE applications
-            SET status = 'APPROVED'
+            SET
+                status = ?,
+                linked_user = ?,
+                updated_at = CURRENT_TIMESTAMP
             WHERE id = ?
-        `).run(id);
+        `).run(
+            "APPROVED",
+            userResult.lastInsertRowid,
+            application.id
+        );
+
+        const body =
+`Your CIA application has been APPROVED.
+
+USERNAME: ${username}
+PASSWORD: ${password}
+UNIT: ${application.unit}
+RANK: ${rank}
+CLEARANCE: ${clearance}
+
+Keep these credentials private.`;
 
         db.prepare(`
             INSERT INTO messages
             (
-                user_id,
+                sender_id,
                 sender_label,
+                recipient_user,
+                recipient_application,
                 subject,
                 body,
                 type
             )
-            VALUES (?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
         `).run(
-            result.lastInsertRowid,
-            "CIA COMMAND",
+            req.session.user.id,
+            req.session.user.rank,
+            userResult.lastInsertRowid,
+            application.id,
             "ACCOUNT ISSUED",
-            `Your CIA personnel account has been issued.
-
-USERNAME: ${finalUsername}
-PASSWORD: ${password}
-
-Keep these credentials secure.`,
-            "MESSAGE"
+            body,
+            "CREDENTIALS"
         );
 
         audit(
-            req.session.user.username,
-            "APPLICATION_APPROVED",
             req,
-            `Application #${id}; Account ${finalUsername}`
+            "APPLICATION_APPROVED",
+            `application=${application.id};user=${username}`
         );
 
         res.json({
-            success: true,
-            username: finalUsername,
+            ok: true,
+            username,
             password
         });
     }
 );
 
-/*
-|--------------------------------------------------------------------------
-| REJECT APPLICATION
-|--------------------------------------------------------------------------
-*/
+// =====================================================
+// REJECT APPLICATION
+// =====================================================
 
 app.post(
     "/api/admin/application/:id/reject",
-    requireAdmin,
+    admin,
     (req, res) => {
-
-        const id =
-            Number(req.params.id);
-
-        const application =
-            db.prepare(`
-                SELECT *
-                FROM applications
-                WHERE id = ?
-            `).get(id);
-
-        if (!application) {
-
-            return res.status(404).json({
-                error: "APPLICATION_NOT_FOUND"
-            });
-        }
 
         db.prepare(`
             UPDATE applications
-            SET status = 'REJECTED'
+            SET
+                status = ?,
+                updated_at = CURRENT_TIMESTAMP
             WHERE id = ?
-        `).run(id);
+        `).run(
+            "REJECTED",
+            req.params.id
+        );
 
         audit(
-            req.session.user.username,
-            "APPLICATION_REJECTED",
             req,
-            `Application #${id}`
+            "APPLICATION_REJECTED",
+            `application=${req.params.id}`
         );
 
         res.json({
-            success: true
+            ok: true
         });
     }
 );
 
-/*
-|--------------------------------------------------------------------------
-| SEND MESSAGE
-|--------------------------------------------------------------------------
-*/
+// =====================================================
+// ADMIN USERS
+// =====================================================
 
-app.post(
-    "/api/admin/message",
-    requireAdmin,
+app.get(
+    "/api/admin/users",
+    admin,
     (req, res) => {
 
-        const {
-            target,
-            subject,
-            body,
-            type
-        } = req.body;
+        const users = db.prepare(`
+            SELECT
+                id,
+                username,
+                in_game_name,
+                rank,
+                unit,
+                clearance,
+                created_at
+            FROM users
+            ORDER BY id DESC
+        `).all();
 
-        if (
-            !target ||
-            !subject ||
-            !body
-        ) {
-
-            return res.status(400).json({
-                error: "MISSING_FIELDS"
-            });
-        }
-
-        let userId = null;
-        let applicationId = null;
-
-        if (
-            String(target).startsWith(
-                "app:"
-            )
-        ) {
-
-            applicationId =
-                Number(
-                    String(target)
-                        .replace("app:", "")
-                );
-
-            const appExists =
-                db.prepare(`
-                    SELECT id
-                    FROM applications
-                    WHERE id = ?
-                `).get(applicationId);
-
-            if (!appExists) {
-
-                return res.status(404).json({
-                    error: "APPLICATION_NOT_FOUND"
-                });
-            }
-
-        } else {
-
-            const user =
-                db.prepare(`
-                    SELECT id
-                    FROM users
-                    WHERE username = ?
-                `).get(
-                    String(target).trim()
-                );
-
-            if (!user) {
-
-                return res.status(404).json({
-                    error: "USER_NOT_FOUND"
-                });
-            }
-
-            userId = user.id;
-        }
-
-        db.prepare(`
-            INSERT INTO messages
-            (
-                user_id,
-                application_id,
-                sender_label,
-                subject,
-                body,
-                type
-            )
-            VALUES (?, ?, ?, ?, ?, ?)
-        `).run(
-            userId,
-            applicationId,
-            req.session.user.username,
-            String(subject).trim(),
-            String(body).trim(),
-            type || "MESSAGE"
-        );
-
-        audit(
-            req.session.user.username,
-            "MESSAGE_SENT",
-            req,
-            `Target: ${target}`
-        );
-
-        res.json({
-            success: true
-        });
+        res.json(users);
     }
 );
 
-/*
-|--------------------------------------------------------------------------
-| CREATE USER
-|--------------------------------------------------------------------------
-*/
+// =====================================================
+// CREATE USER
+// =====================================================
 
 app.post(
     "/api/admin/users",
-    requireCommand,
+    command,
     (req, res) => {
 
         const {
@@ -1235,301 +1036,310 @@ app.post(
             password,
             rank,
             unit,
-            clearance,
-            in_game_name
+            clearance
         } = req.body;
+
+        /*
+         * ALPHA لا يمكن إنشاؤها من الموقع.
+         */
+
+        if (rank === ALPHA_RANK) {
+            return res.status(403).json({
+                error: "ALPHA_MUST_BE_CREATED_IN_SERVER_CODE"
+            });
+        }
 
         if (
             !username ||
             !password ||
-            !rank ||
+            !RANKS.includes(rank) ||
             !unit ||
-            !clearance ||
-            !in_game_name
+            !Object.prototype.hasOwnProperty.call(
+                clearanceRank,
+                clearance
+            )
         ) {
+            return res.status(400).json({
+                error: "INVALID_DATA"
+            });
+        }
 
+        try {
+
+            const result = db.prepare(`
+                INSERT INTO users
+                (
+                    username,
+                    password,
+                    rank,
+                    unit,
+                    clearance,
+                    in_game_name
+                )
+                VALUES (?, ?, ?, ?, ?, ?)
+            `).run(
+                username,
+                bcrypt.hashSync(password, 12),
+                rank,
+                unit,
+                clearance,
+                req.body.in_game_name || username
+            );
+
+            audit(
+                req,
+                "USER_CREATED",
+                `user=${username};rank=${rank}`
+            );
+
+            res.json({
+                ok: true,
+                id: result.lastInsertRowid
+            });
+
+        } catch {
+            res.status(400).json({
+                error: "USERNAME_EXISTS"
+            });
+        }
+    }
+);
+
+// =====================================================
+// SEND MESSAGE
+// =====================================================
+
+app.post(
+    "/api/admin/message",
+    admin,
+    (req, res) => {
+
+        const {
+            target,
+            subject,
+            body,
+            type = "MESSAGE"
+        } = req.body;
+
+        if (!target || !subject || !body) {
             return res.status(400).json({
                 error: "MISSING_FIELDS"
             });
         }
 
-        const exists =
-            db.prepare(`
-                SELECT id
-                FROM users
-                WHERE username = ?
-            `).get(
-                String(username).trim()
+        if (String(target).startsWith("app:")) {
+
+            const id = Number(
+                String(target).slice(4)
             );
 
-        if (exists) {
+            const application = db
+                .prepare(
+                    "SELECT id FROM applications WHERE id = ?"
+                )
+                .get(id);
 
-            return res.status(409).json({
-                error: "USERNAME_EXISTS"
-            });
-        }
+            if (!application) {
+                return res.status(404).json({
+                    error: "APPLICATION_NOT_FOUND"
+                });
+            }
 
-        const passwordHash =
-            bcrypt.hashSync(
-                password,
-                12
-            );
-
-        const result =
             db.prepare(`
-                INSERT INTO users
+                INSERT INTO messages
                 (
-                    username,
-                    password_hash,
-                    in_game_name,
-                    rank,
-                    unit,
-                    clearance
+                    sender_id,
+                    sender_label,
+                    recipient_application,
+                    subject,
+                    body,
+                    type
                 )
                 VALUES (?, ?, ?, ?, ?, ?)
             `).run(
-                String(username).trim(),
-                passwordHash,
-                String(in_game_name).trim(),
-                String(rank).trim(),
-                String(unit).trim(),
-                String(clearance).trim()
+                req.session.user.id,
+                req.session.user.rank,
+                id,
+                subject,
+                body,
+                type
             );
 
+            audit(
+                req,
+                "APPLICATION_MESSAGE_SENT",
+                `application=${id};type=${type}`
+            );
+
+            return res.json({
+                ok: true
+            });
+        }
+
+        const user = db
+            .prepare(
+                "SELECT id FROM users WHERE username = ?"
+            )
+            .get(target);
+
+        if (!user) {
+            return res.status(404).json({
+                error: "USER_NOT_FOUND"
+            });
+        }
+
+        db.prepare(`
+            INSERT INTO messages
+            (
+                sender_id,
+                sender_label,
+                recipient_user,
+                subject,
+                body,
+                type
+            )
+            VALUES (?, ?, ?, ?, ?, ?)
+        `).run(
+            req.session.user.id,
+            req.session.user.rank,
+            user.id,
+            subject,
+            body,
+            type
+        );
+
         audit(
-            req.session.user.username,
-            "USER_CREATED",
             req,
-            `User ID ${result.lastInsertRowid}`
+            "MESSAGE_SENT",
+            `to=${target};type=${type}`
         );
 
         res.json({
-            success: true
+            ok: true
         });
     }
 );
 
-/*
-|--------------------------------------------------------------------------
-| PDF UPLOAD
-|--------------------------------------------------------------------------
-*/
-
-const upload =
-    multer({
-        storage:
-            multer.diskStorage({
-
-                destination:
-                    function (
-                        req,
-                        file,
-                        cb
-                    ) {
-
-                        cb(
-                            null,
-                            UPLOAD_DIR
-                        );
-                    },
-
-                filename:
-                    function (
-                        req,
-                        file,
-                        cb
-                    ) {
-
-                        const safe =
-                            Date.now() +
-                            "-" +
-                            file.originalname
-                                .replace(
-                                    /[^a-zA-Z0-9._-]/g,
-                                    "_"
-                                );
-
-                        cb(
-                            null,
-                            safe
-                        );
-                    }
-            }),
-
-        limits: {
-            fileSize:
-                15 * 1024 * 1024
-        },
-
-        fileFilter:
-            function (
-                req,
-                file,
-                cb
-            ) {
-
-                if (
-                    file.mimetype !==
-                    "application/pdf"
-                ) {
-
-                    return cb(
-                        new Error(
-                            "PDF_ONLY"
-                        )
-                    );
-                }
-
-                cb(
-                    null,
-                    true
-                );
-            }
-    });
-
-/*
-|--------------------------------------------------------------------------
-| REGISTER REPORT
-|--------------------------------------------------------------------------
-*/
+// =====================================================
+// REPORT UPLOAD
+// =====================================================
 
 app.post(
     "/api/admin/reports",
-    requireAdmin,
+    admin,
     upload.single("pdf"),
     (req, res) => {
 
-        if (!req.file) {
-
+        if (!req.body.title || !req.file) {
             return res.status(400).json({
-                error: "PDF_REQUIRED"
+                error: "TITLE_AND_PDF_REQUIRED"
             });
         }
 
-        const title =
-            String(
-                req.body.title || ""
-            ).trim();
+        const finalPath = path.join(
+            uploads,
+            req.file.filename + ".pdf"
+        );
 
-        const classification =
-            String(
-                req.body.classification ||
-                "CONFIDENTIAL"
-            ).trim();
+        fs.renameSync(
+            req.file.path,
+            finalPath
+        );
 
-        if (!title) {
-
-            fs.unlinkSync(
-                req.file.path
-            );
-
-            return res.status(400).json({
-                error: "TITLE_REQUIRED"
-            });
-        }
-
-        const result =
-            db.prepare(`
-                INSERT INTO reports
-                (
-                    title,
-                    classification,
-                    filename,
-                    filepath
-                )
-                VALUES (?, ?, ?, ?)
-            `).run(
+        const result = db.prepare(`
+            INSERT INTO reports
+            (
                 title,
+                author,
                 classification,
-                req.file.filename,
-                req.file.path
-            );
+                file
+            )
+            VALUES (?, ?, ?, ?)
+        `).run(
+            req.body.title,
+            req.session.user.id,
+            req.body.classification || "CONFIDENTIAL",
+            finalPath
+        );
 
         audit(
-            req.session.user.username,
-            "REPORT_REGISTERED",
             req,
-            `Report #${result.lastInsertRowid}`
+            "REPORT_REGISTERED",
+            `report=${result.lastInsertRowid}`
         );
 
         res.json({
-            success: true,
-            id:
-                result.lastInsertRowid
+            ok: true,
+            id: result.lastInsertRowid
         });
     }
 );
 
-/*
-|--------------------------------------------------------------------------
-| VIEW PDF
-|--------------------------------------------------------------------------
-*/
+// =====================================================
+// VIEW REPORT
+// =====================================================
 
 app.get(
     "/api/reports/:id",
-    requireLogin,
+    auth,
     (req, res) => {
 
-        const report =
-            db.prepare(`
-                SELECT *
-                FROM reports
-                WHERE id = ?
-            `).get(
-                Number(req.params.id)
-            );
-
-        if (!report) {
-
-            return res.status(404).send(
-                "Report not found."
-            );
+        // ALPHA ليس له وصول للتقارير.
+        if (
+            req.session.user.username === ALPHA_USERNAME
+        ) {
+            return res.status(403).json({
+                error: "ALPHA_LOG_ACCOUNT"
+            });
         }
+
+        const report = db
+            .prepare(
+                "SELECT * FROM reports WHERE id = ?"
+            )
+            .get(req.params.id);
 
         if (
-            !fs.existsSync(
-                report.filepath
-            )
+            !report ||
+            !canView(
+                req.session.user,
+                report.classification
+            ) ||
+            !fs.existsSync(report.file)
         ) {
-
-            return res.status(404).send(
-                "PDF file not found."
-            );
+            return res.sendStatus(404);
         }
 
-        res.setHeader(
-            "Content-Type",
-            "application/pdf"
+        audit(
+            req,
+            "REPORT_VIEWED",
+            `report=${report.id}`
         );
 
-        res.setHeader(
-            "Content-Disposition",
-            "inline"
-        );
+        res.type("application/pdf");
 
         res.sendFile(
-            path.resolve(
-                report.filepath
-            )
+            path.resolve(report.file)
         );
     }
 );
 
-/*
-|--------------------------------------------------------------------------
-| COMMAND AUDIT
-|--------------------------------------------------------------------------
-*/
+// =====================================================
+// ALPHA LOGS
+// =====================================================
+// هذا هو endpoint الوحيد الخاص بحساب log.
 
 app.get(
-    "/api/command/audit",
-    requireCommand,
+    "/api/alpha/logs",
+    alpha,
     (req, res) => {
 
-        const rows =
-            db.prepare(`
+        try {
+
+            const logs = db.prepare(`
                 SELECT
+                    id,
+                    actor,
                     actor_label,
                     action,
                     ip,
@@ -1540,150 +1350,250 @@ app.get(
                 LIMIT 500
             `).all();
 
-        res.json(rows);
+            res.json({
+                ok: true,
+                rank: ALPHA_RANK,
+                logs
+            });
+
+        } catch (error) {
+
+            console.error(
+                "ALPHA LOG ERROR:",
+                error
+            );
+
+            res.status(500).json({
+                error: "LOG_LOAD_FAILED"
+            });
+        }
     }
 );
 
-/*
-|--------------------------------------------------------------------------
-| VISITS / IP
-|--------------------------------------------------------------------------
-|
-| Only COMMAND OF CIA can view IP records.
-|
-*/
+// =====================================================
+// COMMAND AUDIT
+// =====================================================
+// أبقيناه للـ COMMAND.
+// حساب log له endpoint مستقل.
 
 app.get(
-    "/api/command/visits",
-    requireCommand,
+    "/api/command/audit",
+    command,
     (req, res) => {
 
-        const visits =
-            db.prepare(`
-                SELECT
-                    id,
-                    ip,
-                    user_agent,
-                    language,
-                    timezone,
-                    path,
-                    created_at
-                FROM visits
-                ORDER BY id DESC
-                LIMIT 1000
-            `).all();
-
-        res.json(visits);
-    }
-);
-
-/*
-|--------------------------------------------------------------------------
-| PUBLIC WEBSITE
-|--------------------------------------------------------------------------
-*/
-
-app.use(
-    express.static(
-        PUBLIC_DIR
-    )
-);
-
-/*
-|--------------------------------------------------------------------------
-| HEALTH CHECK
-|--------------------------------------------------------------------------
-*/
-
-app.get(
-    "/health",
-    (req, res) => {
+        const logs = db.prepare(`
+            SELECT
+                id,
+                actor,
+                actor_label,
+                action,
+                ip,
+                details,
+                created_at
+            FROM audit
+            ORDER BY id DESC
+            LIMIT 500
+        `).all();
 
         res.json({
-            status: "ok",
-            database: dbPath
+            ok: true,
+            logs
         });
     }
 );
 
-/*
-|--------------------------------------------------------------------------
-| 404
-|--------------------------------------------------------------------------
-*/
+// =====================================================
+// OLD ADMIN LOGS
+// =====================================================
+// تم إغلاقه عن ADMIN.
+// فقط COMMAND يستطيع الوصول إليه.
 
-app.use(
+app.get(
+    "/api/admin/logs",
+    command,
     (req, res) => {
 
-        res.status(404).send(
-            "404 - Page Not Found"
-        );
+        const logs = db.prepare(`
+            SELECT
+                id,
+                actor,
+                actor_label,
+                action,
+                ip,
+                details,
+                created_at
+            FROM audit
+            ORDER BY id DESC
+            LIMIT 500
+        `).all();
+
+        res.json({
+            ok: true,
+            logs
+        });
     }
 );
 
-/*
-|--------------------------------------------------------------------------
-| ERROR HANDLER
-|--------------------------------------------------------------------------
-*/
+// =====================================================
+// SECTOR
+// =====================================================
 
-app.use(
-    (error, req, res, next) => {
+app.get(
+    "/api/sector",
+    auth,
+    (req, res) => {
 
-        console.error(
-            "SERVER ERROR:",
-            error
-        );
-
+        // ALPHA لا يرى القطاع.
         if (
-            error.message ===
-            "PDF_ONLY"
+            req.session.user.username === ALPHA_USERNAME
         ) {
-
-            return res.status(400).json({
-                error: "PDF_ONLY"
+            return res.status(403).json({
+                error: "ALPHA_LOG_ACCOUNT"
             });
         }
 
+        const users = db.prepare(`
+            SELECT
+                id,
+                username,
+                in_game_name,
+                rank,
+                unit,
+                clearance,
+                created_at
+            FROM users
+            WHERE username != ?
+            ORDER BY
+                CASE rank
+                    WHEN "COMMAND OF CIA" THEN 1
+                    WHEN "AGENT OFFICER" THEN 2
+                    WHEN "AGENT" THEN 3
+                    ELSE 4
+                END,
+                id
+        `).all(ALPHA_USERNAME);
+
+        res.json(users);
+    }
+);
+
+// =====================================================
+// HEALTH CHECK
+// =====================================================
+
+app.get("/api/health", (req, res) => {
+    res.json({
+        ok: true,
+        server: "CIA RP",
+        database: true,
+        time: new Date().toISOString()
+    });
+});
+
+// =====================================================
+// STATIC
+// =====================================================
+
+app.use(
+    express.static(
+        path.join(__dirname, "public")
+    )
+);
+
+// =====================================================
+// INDEX
+// =====================================================
+
+app.get("/", (req, res) => {
+
+    const indexPath = path.join(
+        __dirname,
+        "public",
+        "index.html"
+    );
+
+    if (!fs.existsSync(indexPath)) {
+        return res.status(404).send(
+            "index.html not found."
+        );
+    }
+
+    res.sendFile(indexPath);
+});
+
+// =====================================================
+// ERROR HANDLER
+// =====================================================
+
+app.use(
+    (err, req, res, next) => {
+
+        console.error(
+            "SERVER ERROR:",
+            err
+        );
+
+        if (res.headersSent) {
+            return next(err);
+        }
+
         res.status(500).json({
-            error: "INTERNAL_SERVER_ERROR"
+            error: "SERVER_ERROR",
+            message:
+                process.env.NODE_ENV === "development"
+                    ? err.message
+                    : "Internal server error"
         });
     }
 );
 
-/*
-|--------------------------------------------------------------------------
-| START
-|--------------------------------------------------------------------------
-*/
+// =====================================================
+// START
+// =====================================================
 
 app.listen(
     PORT,
-    "0.0.0.0",
+    HOST,
     () => {
 
         console.log(
-            "======================================"
+            `CIA RP running on http://${HOST}:${PORT}`
         );
 
         console.log(
-            "CIA RP SERVER ONLINE"
+            `Public folder: ${path.join(__dirname, "public")}`
         );
 
         console.log(
-            `PORT: ${PORT}`
+            `Database: ${dbPath}`
         );
 
         console.log(
-            `DATABASE: ${dbPath}`
+            "----------------------------------------"
         );
 
         console.log(
-            `REPORTS: ${UPLOAD_DIR}`
+            "ALPHA LOG ACCOUNT"
         );
 
         console.log(
-            "======================================"
+            "Username: log"
+        );
+
+        console.log(
+            "Password: log_1"
+        );
+
+        console.log(
+            "Rank: ALPHA"
+        );
+
+        console.log(
+            "Access: /api/alpha/logs ONLY"
+        );
+
+        console.log(
+            "----------------------------------------"
         );
     }
 );
