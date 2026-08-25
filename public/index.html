@@ -7,188 +7,396 @@
 
 <style>
 :root{
---bg:#04070a;--p:#091016;--p2:#0d151c;--l:#1c2a33;
---t:#eaf0f3;--m:#71808a;--r:#d71920;--g:#35d39c;--a:#e5b84c
+--bg:#04070a;
+--p:#091016;
+--p2:#0d151c;
+--l:#1c2a33;
+--t:#eaf0f3;
+--m:#71808a;
+--r:#d71920;
+--g:#35d39c;
+--a:#e5b84c
 }
+
 *{box-sizing:border-box}
+
 body{
 margin:0;
 background:radial-gradient(circle at 80% 0,#162028 0,#04070a 42%);
 color:var(--t);
 font-family:Arial,Tahoma,sans-serif
 }
+
 button,input,select,textarea{font:inherit}
-.wrap{max-width:1280px;margin:auto;padding:24px}
+
+.wrap{
+max-width:1280px;
+margin:auto;
+padding:24px
+}
+
 .top{
-display:flex;justify-content:space-between;align-items:center;
-border-bottom:1px solid var(--l);padding-bottom:17px
+display:flex;
+justify-content:space-between;
+align-items:center;
+border-bottom:1px solid var(--l);
+padding-bottom:17px
 }
-.brand{font-weight:900;letter-spacing:2px}
+
+.brand{
+font-weight:900;
+letter-spacing:2px
+}
+
 .mono{font-family:Consolas,monospace}
-.muted{color:var(--m);font-size:12px}
-.btn{
-background:#111a21;border:1px solid #33444d;color:#fff;
-padding:9px 13px;border-radius:5px;cursor:pointer
+
+.muted{
+color:var(--m);
+font-size:12px
 }
+
+.btn{
+background:#111a21;
+border:1px solid #33444d;
+color:#fff;
+padding:9px 13px;
+border-radius:5px;
+cursor:pointer
+}
+
 .btn:hover{filter:brightness(1.2)}
-.red{background:#351014;border-color:#72252c}
-.green{background:#0c2a20;border-color:#28674f}
-.amber{background:#2a2412;border-color:#65531f}
-.small{padding:6px 9px;font-size:11px}
+
+.red{
+background:#351014;
+border-color:#72252c
+}
+
+.green{
+background:#0c2a20;
+border-color:#28674f
+}
+
+.amber{
+background:#2a2412;
+border-color:#65531f
+}
+
+.small{
+padding:6px 9px;
+font-size:11px
+}
+
 .hero,.panel,.card{
 background:rgba(8,14,19,.96);
 border:1px solid var(--l);
 border-radius:7px
 }
-.hero{padding:36px;margin:25px 0;position:relative;overflow:hidden}
+
+.hero{
+padding:36px;
+margin:25px 0;
+position:relative;
+overflow:hidden
+}
+
 .hero:after{
 content:'CLASSIFIED // CIA ROLEPLAY';
-position:absolute;left:20px;bottom:13px;
-color:#26343d;font:10px Consolas;
+position:absolute;
+left:20px;
+bottom:13px;
+color:#26343d;
+font:10px Consolas;
 transform:rotate(-8deg)
 }
-h1{font-size:34px;margin:8px 0}
-.hero p{max-width:800px;color:#9aa7ae;line-height:1.8}
-.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+
+h1{
+font-size:34px;
+margin:8px 0
+}
+
+.hero p{
+max-width:800px;
+color:#9aa7ae;
+line-height:1.8
+}
+
+.grid{
+display:grid;
+grid-template-columns:repeat(3,1fr);
+gap:14px
+}
+
 .card,.panel{padding:18px}
+
 .panel{margin-top:14px}
+
 .field{margin:10px 0}
+
 .field label{
-display:block;color:#84929a;font:11px Consolas;margin-bottom:6px
+display:block;
+color:#84929a;
+font:11px Consolas;
+margin-bottom:6px
 }
+
 .input{
-width:100%;background:#04080b;border:1px solid #263640;
-color:#fff;border-radius:5px;padding:10px;outline:0
+width:100%;
+background:#04080b;
+border:1px solid #263640;
+color:#fff;
+border-radius:5px;
+padding:10px;
+outline:0
 }
-.input:focus{border-color:#71848e}
-.cols{display:grid;grid-template-columns:1fr 1fr;gap:13px}
-.tabs{display:flex;gap:7px;flex-wrap:wrap;margin:15px 0}
+
+.input:focus{
+border-color:#71848e
+}
+
+.cols{
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:13px
+}
+
+.tabs{
+display:flex;
+gap:7px;
+flex-wrap:wrap;
+margin:15px 0
+}
+
 .tag{
-display:inline-block;border:1px solid #3b4a53;
-border-radius:3px;padding:4px 7px;font:10px Consolas;
-color:#c7d0d5;margin:2px
+display:inline-block;
+border:1px solid #3b4a53;
+border-radius:3px;
+padding:4px 7px;
+font:10px Consolas;
+color:#c7d0d5;
+margin:2px
 }
-.tag.red{border-color:#6c252c;color:#ff6c73}
-.tag.green{border-color:#25684f;color:#48dfa9}
-.tag.amber{border-color:#66541f;color:#e7c25d}
-.table{width:100%;border-collapse:collapse}
+
+.tag.red{
+border-color:#6c252c;
+color:#ff6c73
+}
+
+.tag.green{
+border-color:#25684f;
+color:#48dfa9
+}
+
+.tag.amber{
+border-color:#66541f;
+color:#e7c25d
+}
+
+.table{
+width:100%;
+border-collapse:collapse
+}
+
 .table th,.table td{
 border-bottom:1px solid #17242d;
-padding:11px;text-align:left;font-size:12px;
+padding:11px;
+text-align:left;
+font-size:12px;
 vertical-align:top
 }
-.table th{color:#687780;font:10px Consolas}
+
+.table th{
+color:#687780;
+font:10px Consolas
+}
+
 .notice{
 border-left:3px solid var(--r);
 background:#120b0d;
-padding:12px;color:#aeb9bf;font-size:12px
+padding:12px;
+color:#aeb9bf;
+font-size:12px
 }
+
 .toast{
-position:fixed;left:22px;bottom:22px;z-index:9999;
-min-width:280px;max-width:420px;
-background:#0a1117;border:1px solid #33434e;color:#e8eef2;
-padding:13px 15px;border-radius:6px;
+position:fixed;
+left:22px;
+bottom:22px;
+z-index:9999;
+min-width:280px;
+max-width:420px;
+background:#0a1117;
+border:1px solid #33434e;
+color:#e8eef2;
+padding:13px 15px;
+border-radius:6px;
 box-shadow:0 15px 45px #000;
-transform:translateY(20px);opacity:0;
-pointer-events:none;transition:.2s
+transform:translateY(20px);
+opacity:0;
+pointer-events:none;
+transition:.2s
 }
-.toast.show{transform:translateY(0);opacity:1}
+
+.toast.show{
+transform:translateY(0);
+opacity:1
+}
+
 .modal{
-position:fixed;inset:0;background:#000c;
-display:grid;place-items:center;z-index:90;padding:20px
+position:fixed;
+inset:0;
+background:#000c;
+display:grid;
+place-items:center;
+z-index:90;
+padding:20px
 }
+
 .modalbox{
-width:min(1100px,96vw);height:min(800px,94vh);
-background:#080d12;border:1px solid #3b4b55;
-border-radius:8px;overflow:hidden;
-display:flex;flex-direction:column
+width:min(1100px,96vw);
+height:min(800px,94vh);
+background:#080d12;
+border:1px solid #3b4b55;
+border-radius:8px;
+overflow:hidden;
+display:flex;
+flex-direction:column
 }
+
 .modalhead{
-padding:10px 14px;border-bottom:1px solid var(--l);
-display:flex;justify-content:space-between
+padding:10px 14px;
+border-bottom:1px solid var(--l);
+display:flex;
+justify-content:space-between
 }
-.modal iframe{width:100%;height:100%;border:0;background:#222}
-.hidden{display:none!important}
-.empty{padding:30px;text-align:center;color:var(--m)}
-.kicker{font:11px Consolas;color:#ff4b55;letter-spacing:2px}
-.profile{display:flex;gap:7px;flex-wrap:wrap}
-.message{margin:10px 0}
-.message.unread{border-color:#743039}
-.message p{white-space:pre-line;line-height:1.7}
-.login{max-width:550px;margin:70px auto}
+
+.modal iframe{
+width:100%;
+height:100%;
+border:0;
+background:#222
+}
+
+.hidden{
+display:none!important
+}
+
+.empty{
+padding:30px;
+text-align:center;
+color:var(--m)
+}
+
+.kicker{
+font:11px Consolas;
+color:#ff4b55;
+letter-spacing:2px
+}
+
+.profile{
+display:flex;
+gap:7px;
+flex-wrap:wrap
+}
+
+.message{
+margin:10px 0
+}
+
+.message.unread{
+border-color:#743039
+}
+
+.message p{
+white-space:pre-line;
+line-height:1.7
+}
+
+.login{
+max-width:550px;
+margin:70px auto
+}
+
 .danger{color:#ff6570}
 .ok{color:var(--g)}
 
 .langbox{
-display:flex;border:1px solid #27343e;
-background:#080d12;border-radius:5px;overflow:hidden
+display:flex;
+border:1px solid #27343e;
+background:#080d12;
+border-radius:5px;
+overflow:hidden
 }
+
 .lang{
-border:0;background:transparent;color:#71808b;
-padding:7px 10px;font:11px Consolas
-}
-.lang.active{background:#16212a;color:#fff}
-
-.log-header{
-display:flex;
-justify-content:space-between;
-align-items:center;
-gap:10px;
-flex-wrap:wrap;
-margin-bottom:15px
+border:0;
+background:transparent;
+color:#71808b;
+padding:7px 10px;
+font:11px "IBM Plex Mono"
 }
 
-.log-title{
-font-size:24px;
-font-weight:900;
-letter-spacing:1px
+.lang.active{
+background:#16212a;
+color:#fff
 }
 
-.log-row{
-background:#070d12;
-border:1px solid #17242d;
-border-radius:6px;
-padding:14px;
-margin-bottom:9px
+.rtl{
+direction:rtl
 }
 
-.log-meta{
-display:flex;
-gap:8px;
-flex-wrap:wrap;
-align-items:center;
-margin-bottom:8px
+.rtl .top{
+direction:rtl
+}
+
+.rtl .table{
+text-align:right
+}
+
+.rtl .field{
+text-align:right
+}
+
+.log-row:hover{
+background:#0c151c
 }
 
 .log-action{
 font-family:Consolas,monospace;
-color:#e5b84c;
-font-weight:bold
+color:#e5b84c
 }
 
-.log-details{
+.log-ip{
 font-family:Consolas,monospace;
-font-size:12px;
-color:#aeb9bf;
-white-space:pre-wrap;
-word-break:break-word
+color:#8fa4b0
 }
 
 .copy-id{
-cursor:pointer
+display:inline-flex;
+align-items:center;
+gap:7px;
+margin-top:10px
 }
 
-.rtl{direction:rtl}
-.rtl .top{direction:rtl}
-.rtl .table{text-align:right}
-.rtl .field{text-align:right}
-
 @media(max-width:800px){
-.grid,.cols{grid-template-columns:1fr}
-.wrap{padding:14px}
-h1{font-size:26px}
-.table{font-size:11px}
-.table th,.table td{padding:8px}
+.grid,.cols{
+grid-template-columns:1fr
+}
+
+.wrap{
+padding:14px
+}
+
+h1{
+font-size:26px
+}
+
+.table{
+font-size:11px
+}
+
+.table th,.table td{
+padding:8px
+}
 }
 </style>
 </head>
@@ -247,6 +455,7 @@ PERSONNEL LOGIN
 
 </section>
 
+
 <div class="grid">
 
 <div class="card">
@@ -261,7 +470,7 @@ Submit your exact in-game name and Discord ID.
 <span class="tag green">PERSISTENT</span>
 <h3>Private Dashboard</h3>
 <p class="muted">
-Your application remains available from this browser.
+Return later from the same browser and your application status remains.
 </p>
 </div>
 
@@ -269,7 +478,7 @@ Your application remains available from this browser.
 <span class="tag red">CLASSIFIED</span>
 <h3>Command Reports</h3>
 <p class="muted">
-Authorized personnel can access classified intelligence.
+Authorized personnel can register classified intelligence reports.
 </p>
 </div>
 
@@ -348,7 +557,8 @@ PERSONNEL DASHBOARD
 
 </div>
 
-<div class="tabs">
+
+<div id="normalTabs" class="tabs">
 
 <button class="btn" onclick="userTab('messages')">
 MESSAGES
@@ -415,40 +625,46 @@ CLOSE
 
 <script>
 
-const $=id=>document.getElementById(id);
+const $ = id => document.getElementById(id);
 
-let me=null;
-let udata=null;
-let appdata=null;
+let me = null;
+let udata = null;
+let appdata = null;
 
-const adminRanks=[
+const adminRanks = [
 "AGENT OFFICER",
 "COMMAND OF CIA"
 ];
 
-const LOG_ACCOUNT="log";
-const LOG_RANK="ALPHA";
 
+/* =====================================================
+   HELPERS
+===================================================== */
 
 function esc(v){
-return String(v??'').replace(/[&<>"']/g,m=>({
+
+return String(v ?? '').replace(
+/[&<>"']/g,
+m => ({
 '&':'&amp;',
 '<':'&lt;',
 '>':'&gt;',
 '"':'&quot;',
 "'":'&#39;'
-}[m]))
+}[m])
+);
+
 }
 
 
 function toast(t){
 
-$('toast').textContent=t;
+$('toast').textContent = t;
 
 $('toast').classList.add('show');
 
 setTimeout(
-()=>$('toast').classList.remove('show'),
+() => $('toast').classList.remove('show'),
 3000
 );
 
@@ -463,7 +679,7 @@ function base(){
 'appDash',
 'userDash'
 ].forEach(
-x=>$(x).classList.add('hidden')
+x => $(x).classList.add('hidden')
 );
 
 $('topActions').classList.remove('hidden');
@@ -474,25 +690,31 @@ $('home').classList.remove('hidden');
 
 
 function backHome(){
+
 location.reload();
+
 }
 
 
-/* LOGIN */
+/* =====================================================
+   LOGIN PAGE
+===================================================== */
 
 function loginPage(){
 
 $('home').classList.add('hidden');
 $('appDash').classList.add('hidden');
 $('userDash').classList.add('hidden');
+
 $('auth').classList.remove('hidden');
 
-$('authTitle').textContent=
-lang==='ar'
-?'تسجيل دخول الأفراد'
-:'SECURE PERSONNEL LOGIN';
+$('authTitle').textContent =
+lang === 'ar'
+? 'تسجيل دخول الأفراد'
+: 'SECURE PERSONNEL LOGIN';
 
-$('authBody').innerHTML=`
+
+$('authBody').innerHTML = `
 
 <div class="field">
 
@@ -505,6 +727,7 @@ autocomplete="username"
 >
 
 </div>
+
 
 <div class="field">
 
@@ -519,13 +742,12 @@ autocomplete="current-password"
 
 </div>
 
-<button class="btn red"
-onclick="login()">
+
+<button class="btn red" onclick="login()">
 AUTHENTICATE
 </button>
 
-<button class="btn"
-onclick="base()">
+<button class="btn" onclick="base()">
 BACK
 </button>
 
@@ -533,8 +755,8 @@ BACK
 
 $('lp').addEventListener(
 'keydown',
-e=>{
-if(e.key==='Enter') login()
+e => {
+if(e.key === 'Enter') login();
 }
 );
 
@@ -543,7 +765,9 @@ $('lu').focus();
 }
 
 
-/* APPLICATION */
+/* =====================================================
+   APPLICATION PAGE
+===================================================== */
 
 function applyPage(){
 
@@ -551,22 +775,22 @@ $('home').classList.add('hidden');
 
 $('auth').classList.remove('hidden');
 
-$('authTitle').textContent=
-'CIA APPLICATION // PERSONNEL INFORMATION';
+$('authTitle').textContent =
+'CIA APPLICATION // ENGLISH NAME';
 
-$('authBody').innerHTML=`
+
+$('authBody').innerHTML = `
 
 <div class="notice">
 
-All information submitted here is attached to your
-CIA application record.
-
-Your Discord ID is used as your application identifier
-and is visible to authorized personnel.
+Use your exact in-game name and your Discord ID.
+After submission, this browser receives a private application dashboard.
 
 </div>
 
+
 <div class="cols">
+
 
 <div class="field">
 
@@ -586,20 +810,12 @@ placeholder="John Carter"
 <label>DISCORD ID</label>
 
 <input
-id="adi"
+id="ad"
 class="input"
 placeholder="123456789012345678"
 inputmode="numeric"
 autocomplete="off"
 >
-
-<div class="muted" style="margin-top:6px">
-
-Enter your Discord User ID.
-Enable Developer Mode in Discord,
-then copy your User ID.
-
-</div>
 
 </div>
 
@@ -623,11 +839,25 @@ class="input"
 
 <select id="au" class="input">
 
-<option>Intelligence Operations</option>
-<option>Field Operations</option>
-<option>Cyber Intelligence</option>
-<option>Internal Affairs</option>
-<option>Protective Operations</option>
+<option>
+Intelligence Operations
+</option>
+
+<option>
+Field Operations
+</option>
+
+<option>
+Cyber Intelligence
+</option>
+
+<option>
+Internal Affairs
+</option>
+
+<option>
+Protective Operations
+</option>
 
 </select>
 
@@ -645,12 +875,15 @@ class="input"
 
 </div>
 
+
 </div>
 
 
 <div class="field">
 
-<label>WHY SHOULD CIA ACCEPT YOU?</label>
+<label>
+WHY SHOULD CIA ACCEPT YOU?
+</label>
 
 <textarea
 id="aw"
@@ -663,13 +896,16 @@ rows="5"
 
 <button
 class="btn red"
-onclick="apply()">
+onclick="apply()"
+>
 SUBMIT APPLICATION
 </button>
 
+
 <button
 class="btn"
-onclick="base()">
+onclick="base()"
+>
 BACK
 </button>
 
@@ -678,51 +914,48 @@ BACK
 }
 
 
-/* SUBMIT */
+/* =====================================================
+   APPLY
+===================================================== */
 
 async function apply(){
 
-const b={
+const b = {
 
-name:$('an').value.trim(),
+name: $('an').value.trim(),
 
-discord_id:$('adi').value.trim(),
+discord_id: $('ad').value.trim(),
 
-age:$('aa').value,
+age: $('aa').value,
 
-unit:$('au').value,
+unit: $('au').value,
 
-experience:$('ae').value.trim(),
+experience: $('ae').value.trim(),
 
-why:$('aw').value.trim()
+why: $('aw').value.trim()
 
 };
 
 
 if(
-!b.name||
-!b.discord_id||
-!b.age||
-!b.experience||
+!b.name ||
+!b.discord_id ||
+!b.age ||
+!b.experience ||
 !b.why
 ){
 
 return toast(
-'Complete every field including Discord ID.'
+'Complete every field.'
 );
 
 }
 
 
-/*
-Only normal Discord snowflake-looking IDs.
-No username option.
-*/
-
-if(!/^\d{15,25}$/.test(b.discord_id)){
+if(!/^\d{5,25}$/.test(b.discord_id)){
 
 return toast(
-'Invalid Discord ID.'
+'Enter a valid Discord ID.'
 );
 
 }
@@ -730,7 +963,7 @@ return toast(
 
 try{
 
-const r=await fetch(
+const r = await fetch(
 '/api/applications',
 {
 method:'POST',
@@ -742,108 +975,109 @@ body:JSON.stringify(b)
 }
 );
 
-const j=await r.json();
+
+const j = await r.json();
+
 
 if(!r.ok){
 
 return toast(
-j.error||'Application could not be saved.'
+j.error || 'Application could not be saved.'
 );
 
 }
 
 
-/*
-Store application token.
-*/
+/* SAVE APPLICATION TOKEN */
 
-document.cookie=
-'cia_application='+
-encodeURIComponent(j.token)+
+if(j.token){
+
+document.cookie =
+'cia_application=' +
+encodeURIComponent(j.token) +
 '; max-age=31536000; path=/; samesite=lax';
 
+}
 
-/*
-Show Application ID + COPY.
-*/
 
-$('authBody').innerHTML=`
+/* APPLICATION ID + COPY */
+
+showApplicationCreated(
+j.id
+);
+
+}catch(error){
+
+console.error(error);
+
+toast(
+'Server connection failed.'
+);
+
+}
+
+}
+
+
+/* =====================================================
+   APPLICATION CREATED
+===================================================== */
+
+function showApplicationCreated(id){
+
+$('authTitle').textContent =
+'CIA APPLICATION // SUBMITTED';
+
+
+$('authBody').innerHTML = `
 
 <div class="panel">
 
 <div class="kicker">
-APPLICATION REGISTERED
+APPLICATION RECEIVED
 </div>
 
 <h2>
-APPLICATION #${esc(j.id)}
+Your application has been submitted.
 </h2>
 
+
 <p class="muted">
-Your application has been successfully registered.
+Keep your Application ID for reference.
 </p>
 
-<div class="field">
 
-<label>APPLICATION ID</label>
+<div class="card">
 
-<div style="display:flex;gap:8px">
+<div class="muted">
+APPLICATION ID
+</div>
 
-<input
-id="applicationIdCopy"
-class="input"
-readonly
-value="${esc(j.id)}"
+<h1
+id="createdApplicationId"
+class="mono"
 >
+${esc(id)}
+</h1>
+
 
 <button
-class="btn green"
-onclick="copyApplicationId()">
-COPY
+class="btn green copy-id"
+onclick="copyApplicationId()"
+>
+COPY APPLICATION ID
 </button>
 
 </div>
 
-</div>
-
-
-<div class="field">
-
-<label>DISCORD ID</label>
-
-<div style="display:flex;gap:8px">
-
-<input
-class="input"
-readonly
-value="${esc(b.discord_id)}"
->
-
-<button
-class="btn"
-onclick="copyText('${esc(b.discord_id)}')">
-COPY
-</button>
-
-</div>
-
-</div>
-
-
-<div class="notice">
-
-Keep your Application ID.
-
-It can be used by authorized personnel
-to identify your application.
-
-</div>
 
 <br>
 
+
 <button
-class="btn red"
-onclick="loadApplication()">
+class="btn"
+onclick="loadApplication()"
+>
 OPEN APPLICATION DASHBOARD
 </button>
 
@@ -851,64 +1085,60 @@ OPEN APPLICATION DASHBOARD
 
 `;
 
-toast(
-'Application registered successfully.'
-);
-
 }
 
-
-/* COPY */
 
 async function copyApplicationId(){
 
-const el=$('applicationIdCopy');
+const value =
+$('createdApplicationId')?.textContent?.trim();
 
-await navigator.clipboard.writeText(
-el.value
-);
-
-toast('Application ID copied.');
-
-}
-
-
-async function copyText(value){
+if(!value)return;
 
 try{
 
 await navigator.clipboard.writeText(value);
 
-toast('Copied.');
+toast(
+'Application ID copied.'
+);
 
 }catch{
 
-toast('Copy failed.');
+toast(
+'Copy failed. Copy the ID manually.'
+);
 
 }
 
 }
 
 
-/* LOAD APPLICATION */
+/* =====================================================
+   LOAD APPLICATION
+===================================================== */
 
 async function loadApplication(){
 
 try{
 
-let r=await fetch(
+const r =
+await fetch(
 '/api/application/me',
 {
 credentials:'same-origin'
 }
 );
 
-let j=await r.json();
+const j = await r.json();
 
-if(!j.application)
+if(!j.application){
+
 return base();
 
-appdata=j;
+}
+
+appdata = j;
 
 $('auth').classList.add('hidden');
 $('home').classList.add('hidden');
@@ -918,36 +1148,40 @@ $('appDash').classList.remove('hidden');
 
 $('topActions').classList.add('hidden');
 
-$('appNameTitle').textContent=
+$('appNameTitle').textContent =
 j.application.name;
 
-$('appStatus').innerHTML=
-'<span class="tag '+
-(
-j.application.status==='APPROVED'
-?'green':
-j.application.status==='REJECTED'
-?'red':
-'amber'
-)+
-'">'+
-esc(j.application.status)+
-'</span>';
 
-$('appMeta').textContent=
-'Application #'+
-j.application.id+
-' // '+
-j.application.unit+
-' // submitted '+
+$('appStatus').innerHTML = `
+
+<span class="tag ${
+j.application.status === 'APPROVED'
+? 'green'
+: j.application.status === 'REJECTED'
+? 'red'
+: 'amber'
+}">
+${esc(j.application.status)}
+</span>
+
+`;
+
+
+$('appMeta').textContent =
+'Application #' +
+j.application.id +
+' // ' +
+j.application.unit +
+' // submitted ' +
 j.application.created_at;
+
 
 appTab('messages');
 
 }catch{
 
 toast(
-'Application server connection error.'
+'Unable to load application.'
 );
 
 }
@@ -955,144 +1189,193 @@ toast(
 }
 
 
-/* APPLICATION TABS */
+/* =====================================================
+   APPLICATION TABS
+===================================================== */
 
 function appTab(t){
 
-if(t==='messages'){
+if(t === 'messages'){
 
-let a=appdata.messages||[];
+const a = appdata.messages || [];
 
-$('appContent').innerHTML=
+$('appContent').innerHTML = `
 
-'<div class="panel">'+
-'<h2>MESSAGES</h2>'+
+<div class="panel">
 
-(
+<h2>
+MESSAGES
+</h2>
+
+${
 a.length
-
 ?
-
 a.map(
-m=>
-'<div class="card message '+
-(!m.read?'unread':'')+
-'">'+
+m => `
 
-'<b>'+
-esc(m.subject)+
-'</b>'+
+<div class="card message ${
+!m.read ? 'unread' : ''
+}">
 
-'<div class="muted mono">'+
-esc(m.sender_label)+
-' // '+
-esc(m.created_at)+
-'</div>'+
+<b>
+${esc(m.subject)}
+</b>
 
-'<p>'+
-esc(m.body)+
-'</p>'+
+<div class="muted mono">
 
-'</div>'
+${esc(m.sender_label)}
+//
+${esc(m.created_at)}
+
+</div>
+
+<p>
+${esc(m.body)}
+</p>
+
+</div>
+
+`
 ).join('')
-
 :
-
 '<div class="empty">No messages yet.</div>'
+}
 
-)+
+</div>
 
-'</div>';
+`;
 
 return;
 
 }
 
 
-$('appContent').innerHTML=
+$('appContent').innerHTML = `
 
-'<div class="panel">'+
+<div class="panel">
 
-'<h2>APPLICATION FILE</h2>'+
+<h2>
+APPLICATION FILE
+</h2>
 
-'<table class="table">'+
 
-'<tr><th>APPLICATION ID</th><td>'+
-esc(appdata.application.id)+
-'</td></tr>'+
+<table class="table">
 
-'<tr><th>DISCORD ID</th><td>'+
-esc(
-appdata.application.discord_id||
-'ERROR'
-)+
-'</td></tr>'+
+<tr>
+<th>APPLICATION ID</th>
+<td class="mono">
+${esc(appdata.application.id)}
+</td>
+</tr>
 
-'<tr><th>IN-GAME NAME</th><td>'+
-esc(appdata.application.name)+
-'</td></tr>'+
+<tr>
+<th>IN-GAME NAME</th>
+<td>
+${esc(appdata.application.name)}
+</td>
+</tr>
 
-'<tr><th>UNIT</th><td>'+
-esc(appdata.application.unit)+
-'</td></tr>'+
+<tr>
+<th>DISCORD ID</th>
+<td class="mono">
+${esc(
+appdata.application.discord_id || 'NOT PROVIDED'
+)}
+</td>
+</tr>
 
-'<tr><th>STATUS</th><td>'+
-esc(appdata.application.status)+
-'</td></tr>'+
+<tr>
+<th>UNIT</th>
+<td>
+${esc(appdata.application.unit)}
+</td>
+</tr>
 
-'<tr><th>EXPERIENCE</th><td>'+
-esc(appdata.application.experience)+
-'</td></tr>'+
+<tr>
+<th>STATUS</th>
+<td>
+${esc(appdata.application.status)}
+</td>
+</tr>
 
-'<tr><th>WHY CIA</th><td>'+
-esc(appdata.application.why)+
-'</td></tr>'+
+<tr>
+<th>EXPERIENCE</th>
+<td>
+${esc(appdata.application.experience)}
+</td>
+</tr>
 
-'</table>'+
+<tr>
+<th>WHY CIA</th>
+<td>
+${esc(appdata.application.why)}
+</td>
+</tr>
 
-(
+</table>
+
+
+${
 appdata.credentials
-
 ?
+`
 
-'<div class="notice" style="margin-top:14px">'+
-'ACCOUNT ISSUED<br><br>'+
-'USERNAME: <b>'+
-esc(appdata.credentials.username)+
-'</b><br>'+
-'RANK: '+
-esc(appdata.credentials.rank)+
-'<br>'+
-'UNIT: '+
-esc(appdata.credentials.unit)+
-'</div>'
+<div
+class="notice"
+style="margin-top:14px"
+>
 
+ACCOUNT ISSUED
+
+<br><br>
+
+USERNAME:
+<b>
+${esc(appdata.credentials.username)}
+</b>
+
+<br>
+
+RANK:
+${esc(appdata.credentials.rank)}
+
+<br>
+
+UNIT:
+${esc(appdata.credentials.unit)}
+
+</div>
+
+`
 :
-
 ''
+}
 
-)+
+</div>
 
-'</div>';
+`;
 
 }
 
 
-/* LOGIN */
+/* =====================================================
+   LOGIN
+===================================================== */
 
 async function login(){
 
-if(location.protocol==='file:'){
+if(location.protocol === 'file:'){
 
 return toast(
-'Run the Node server with npm start.'
+'Run the Node server with npm start, then open http://SERVER-IP:3000.'
 );
 
 }
 
+
 try{
 
-let r=await fetch(
+const r = await fetch(
 '/api/login',
 {
 method:'POST',
@@ -1107,15 +1390,18 @@ username:$('lu').value.trim(),
 password:$('lp').value
 
 })
+
 }
 );
 
-let j=await r.json();
+
+const j = await r.json();
+
 
 if(!r.ok){
 
 return toast(
-j.error==='INVALID_CREDENTIALS'
+j.error === 'INVALID_CREDENTIALS'
 ?
 'Invalid username or password.'
 :
@@ -1124,33 +1410,18 @@ j.error==='INVALID_CREDENTIALS'
 
 }
 
-me=j.user;
 
-/*
-IMPORTANT:
-The server must return rank=ALPHA
-for the log account.
-*/
-
-if(
-me.username.toLowerCase()===
-LOG_ACCOUNT
-||
-me.rank===LOG_RANK
-){
-
-enterLog();
-
-return;
-
-}
+me = j.user;
 
 enterUser();
 
+
 }catch(e){
 
+console.error(e);
+
 toast(
-'Server connection error.'
+'Server connection failed.'
 );
 
 }
@@ -1158,7 +1429,9 @@ toast(
 }
 
 
-/* NORMAL USER */
+/* =====================================================
+   ENTER USER
+===================================================== */
 
 function enterUser(){
 
@@ -1170,532 +1443,714 @@ $('userDash').classList.remove('hidden');
 
 $('topActions').classList.add('hidden');
 
-$('welcome').textContent=
-'WELCOME, '+
+
+/*
+=====================================================
+LOG ACCOUNT
+=====================================================
+*/
+
+if(
+me.username === 'log' ||
+me.rank === 'ALPHA'
+){
+
+enterLogDashboard();
+
+return;
+
+}
+
+
+/*
+=====================================================
+NORMAL USER
+=====================================================
+*/
+
+$('welcome').textContent =
+'WELCOME, ' +
 me.username.toUpperCase();
 
-$('profile').innerHTML=
 
-'<span class="tag">'+
-'RANK: '+
-esc(me.rank)+
-'</span>'+
+$('profile').innerHTML = `
 
-'<span class="tag">'+
-'UNIT: '+
-esc(me.unit)+
-'</span>'+
+<span class="tag">
+RANK: ${esc(me.rank)}
+</span>
 
-'<span class="tag red">'+
-'CLEARANCE: '+
-esc(me.clearance)+
-'</span>';
+<span class="tag">
+UNIT: ${esc(me.unit)}
+</span>
 
-if(adminRanks.includes(me.rank))
+<span class="tag red">
+CLEARANCE: ${esc(me.clearance)}
+</span>
+
+`;
+
+
+if(
+adminRanks.includes(me.rank)
+){
+
 $('adminBtn').classList.remove('hidden');
+
+}
+
 
 loadUser();
 
 }
 
 
-/* LOG ACCOUNT */
+/* =====================================================
+   LOG DASHBOARD
+===================================================== */
 
-function enterLog(){
+function enterLogDashboard(){
+
+$('welcome').textContent =
+'LOG // AUDIT TERMINAL';
+
+
+$('profile').innerHTML = `
+
+<span class="tag red">
+ALPHA
+</span>
+
+<span class="tag">
+LOG ACCESS
+</span>
+
+<span class="tag green">
+AUDIT ONLY
+</span>
+
+`;
+
 
 /*
-Completely hide normal dashboard.
+REMOVE ALL NORMAL TABS
 */
 
-$('auth').classList.add('hidden');
-$('home').classList.add('hidden');
-$('appDash').classList.add('hidden');
-
-$('userDash').classList.remove('hidden');
-
-$('topActions').classList.add('hidden');
-
-
-/*
-Only LOG section.
-*/
-
-$('welcome').textContent=
-'LOG // AUDIT CONTROL';
-
-$('profile').innerHTML=
-
-'<span class="tag red">ALPHA</span>'+
-'<span class="tag">LOG ACCESS</span>'+
-'<span class="tag">RESTRICTED</span>';
-
-
-$('userDash').querySelector('.tabs').innerHTML=`
+$('normalTabs').innerHTML = `
 
 <button
 class="btn red"
-onclick="userTab('logs')">
+onclick="loadLogs()"
+>
 LOGS
 </button>
 
 <button
 class="btn"
-onclick="logout()">
+onclick="logout()"
+>
 LOGOUT
 </button>
 
 `;
 
-$('userContent').innerHTML=`
+
+/*
+OPEN LOGS IMMEDIATELY
+*/
+
+loadLogs();
+
+}
+
+
+/* =====================================================
+   LOAD LOGS
+===================================================== */
+
+async function loadLogs(){
+
+$('userContent').innerHTML = `
 
 <div class="panel">
 
-<div class="log-header">
+<div style="
+display:flex;
+justify-content:space-between;
+align-items:center;
+gap:10px;
+">
 
 <div>
 
 <div class="kicker">
-ALPHA // AUDIT SYSTEM
+ALPHA // AUDIT TERMINAL
 </div>
 
-<div class="log-title">
+<h2>
 SYSTEM LOGS
-</div>
-
-<div class="muted">
-Restricted audit records.
-</div>
+</h2>
 
 </div>
 
-<div>
-
-<button
-class="btn small"
-onclick="loadLogs()">
-REFRESH
-</button>
+<span class="tag red">
+RESTRICTED
+</span>
 
 </div>
 
-</div>
-
-<div id="logsContainer">
 <div class="empty">
 Loading logs...
-</div>
 </div>
 
 </div>
 
 `;
 
-loadLogs();
+
+try{
+
+const r = await fetch(
+'/api/command/audit',
+{
+credentials:'same-origin'
+}
+);
+
+
+if(!r.ok){
+
+return toast(
+'Unable to load logs.'
+);
 
 }
 
 
-/* LOG TAB */
+const data = await r.json();
 
-function userTab(t){
+const logs = data.logs || [];
 
-if(
-me &&
-(
-me.username.toLowerCase()===LOG_ACCOUNT||
-me.rank===LOG_RANK
-)
-){
 
-if(t==='logs')
-loadLogs();
+if(!logs.length){
+
+$('userContent').innerHTML = `
+
+<div class="panel">
+
+<div class="kicker">
+ALPHA // AUDIT TERMINAL
+</div>
+
+<h2>
+SYSTEM LOGS
+</h2>
+
+<div class="empty">
+No audit records found.
+</div>
+
+</div>
+
+`;
 
 return;
 
 }
 
-if(t==='messages')
-renderMessages();
 
-if(t==='reports')
-renderReports();
+$('userContent').innerHTML = `
 
-if(t==='sector')
-renderSector();
+<div class="panel">
 
-if(t==='profile')
-renderProfile();
+<div style="
+display:flex;
+justify-content:space-between;
+align-items:center;
+margin-bottom:14px;
+">
 
-if(t==='admin')
-renderAdmin();
+<div>
+
+<div class="kicker">
+ALPHA // AUDIT TERMINAL
+</div>
+
+<h2>
+SYSTEM LOGS
+</h2>
+
+</div>
+
+<span class="tag red">
+${logs.length} RECORDS
+</span>
+
+</div>
+
+
+<div style="overflow:auto">
+
+<table class="table">
+
+<thead>
+
+<tr>
+
+<th>ID</th>
+
+<th>TIME</th>
+
+<th>ACTOR</th>
+
+<th>ACTION</th>
+
+<th>IP</th>
+
+<th>DETAILS</th>
+
+</tr>
+
+</thead>
+
+<tbody>
+
+${logs.map(x => `
+
+<tr class="log-row">
+
+<td class="mono">
+#${esc(x.id)}
+</td>
+
+<td class="mono">
+${esc(x.created_at)}
+</td>
+
+<td>
+${esc(x.actor_label || 'PUBLIC')}
+</td>
+
+<td class="log-action">
+${esc(x.action)}
+</td>
+
+<td class="log-ip">
+${esc(x.ip || 'UNKNOWN')}
+</td>
+
+<td>
+${esc(x.details || '')}
+</td>
+
+</tr>
+
+`).join('')}
+
+</tbody>
+
+</table>
+
+</div>
+
+</div>
+
+`;
+
+}catch(error){
+
+console.error(error);
+
+toast(
+'Server connection failed.'
+);
+
+}
 
 }
 
 
-/* LOAD NORMAL */
+/* =====================================================
+   NORMAL DASHBOARD
+===================================================== */
 
 async function loadUser(){
 
-let r=await fetch(
+const r =
+await fetch(
 '/api/dashboard',
 {
 credentials:'same-origin'
 }
 );
 
-if(!r.ok)
+
+if(!r.ok){
+
 return location.reload();
 
-udata=await r.json();
+}
+
+
+udata =
+await r.json();
+
 
 userTab('messages');
 
 }
 
 
-/* LOGS */
+/* =====================================================
+   USER TABS
+===================================================== */
 
-async function loadLogs(){
+function userTab(t){
 
-const box=$('logsContainer');
+if(me.username === 'log' || me.rank === 'ALPHA'){
 
-if(!box)
-return;
-
-box.innerHTML=
-'<div class="empty">Loading logs...</div>';
-
-try{
-
-/*
-This is the ONLY endpoint used
-for the LOG account.
-*/
-
-let r=await fetch(
-'/api/command/audit',
-{
-credentials:'same-origin',
-cache:'no-store'
-}
-);
-
-let j=await r.json();
-
-if(!r.ok){
-
-box.innerHTML=
-'<div class="notice">'+
-'LOG ACCESS ERROR: '+
-esc(j.error||'FORBIDDEN')+
-'</div>';
-
-return;
+return loadLogs();
 
 }
 
-let logs=j.logs||[];
 
-if(!logs.length){
+if(t === 'messages')
+renderMessages();
 
-box.innerHTML=
-'<div class="empty">No audit logs available.</div>';
+if(t === 'reports')
+renderReports();
 
-return;
+if(t === 'sector')
+renderSector();
+
+if(t === 'profile')
+renderProfile();
+
+if(t === 'admin')
+renderAdmin();
 
 }
 
-box.innerHTML=logs.map(
-x=>`
 
-<div class="log-row">
+/* =====================================================
+   MESSAGES
+===================================================== */
 
-<div class="log-meta">
+function renderMessages(){
 
-<span class="tag amber">
-#${esc(x.id)}
+const a =
+udata.messages || [];
+
+
+$('userContent').innerHTML = `
+
+<div class="panel">
+
+<h2>
+MESSAGES
+<span class="tag green">
+${a.length}
 </span>
+</h2>
 
-<span class="muted mono">
-${esc(x.created_at)}
-</span>
+${
+a.length
+?
+a.map(
+m => `
 
-<span class="log-action">
-${esc(x.action)}
-</span>
+<div class="card message ${
+!m.read ? 'unread' : ''
+}">
 
+<b>
+${esc(m.subject)}
+</b>
+
+<div class="muted mono">
+${esc(m.sender_label)}
+//
+${esc(m.created_at)}
+//
+${esc(m.type)}
 </div>
 
-
-<div class="log-details">
-
-ACTOR:
-${esc(x.actor_label||'ERROR')}
-
-<br>
-
-IP:
-${esc(x.ip||'ERROR')}
-
-<br>
-
-DETAILS:
-${esc(x.details||'ERROR')}
-
-</div>
+<p>
+${esc(m.body)}
+</p>
 
 </div>
 
 `
-).join('');
-
-}catch(e){
-
-box.innerHTML=
-'<div class="notice">'+
-'LOG SERVER CONNECTION ERROR'+
-'</div>';
-
-}
-
-}
-
-
-/* NORMAL MESSAGES */
-
-function renderMessages(){
-
-let a=udata.messages||[];
-
-$('userContent').innerHTML=
-
-'<div class="panel">'+
-
-'<h2>MESSAGES <span class="tag green">'+
-a.length+
-'</span></h2>'+
-
-(
-a.length
-
-?
-
-a.map(
-m=>
-'<div class="card message '+
-(!m.read?'unread':'')+
-'">'+
-
-'<b>'+
-esc(m.subject)+
-'</b>'+
-
-'<div class="muted mono">'+
-esc(m.sender_label)+
-' // '+
-esc(m.created_at)+
-' // '+
-esc(m.type)+
-'</div>'+
-
-'<p>'+
-esc(m.body)+
-'</p>'+
-
-'</div>'
 ).join('')
-
 :
-
 '<div class="empty">No messages.</div>'
+}
 
-)+
+</div>
 
-'</div>';
+`;
 
 }
 
 
-/* REPORTS */
+/* =====================================================
+   REPORTS
+===================================================== */
 
 function renderReports(){
 
-let a=udata.reports||[];
+const a =
+udata.reports || [];
 
-$('userContent').innerHTML=
 
-'<div class="panel">'+
+$('userContent').innerHTML = `
 
-'<div style="display:flex;justify-content:space-between">'+
+<div class="panel">
 
-'<h2>INTELLIGENCE REPORTS</h2>'+
+<div style="
+display:flex;
+justify-content:space-between
+">
 
-'<span class="tag red">
+<h2>
+INTELLIGENCE REPORTS
+</h2>
+
+<span class="tag red">
 AUTHORIZED ONLY
-</span>'+
+</span>
 
-'</div>'+
+</div>
 
-(
+
+${
 a.length
-
 ?
+`
 
-'<table class="table">'+
+<table class="table">
 
-'<tr>'+
-'<th>ID</th>'+
-'<th>TITLE</th>'+
-'<th>CLASSIFICATION</th>'+
-'<th>DATE</th>'+
-'<th></th>'+
-'</tr>'+
+<tr>
 
-a.map(
-x=>
-'<tr>'+
+<th>ID</th>
+<th>TITLE</th>
+<th>CLASSIFICATION</th>
+<th>DATE</th>
+<th></th>
 
-'<td class="mono">IR-'+
-x.id+
-'</td>'+
+</tr>
 
-'<td>'+
-esc(x.title)+
-'</td>'+
 
-'<td><span class="tag red">'+
-esc(x.classification)+
-'</span></td>'+
+${a.map(x => `
 
-'<td>'+
-esc(x.created_at)+
-'</td>'+
+<tr>
 
-'<td><button class="btn small" onclick="viewPdf('+
-x.id+
-')">VIEW PDF</button></td>'+
+<td class="mono">
+IR-${x.id}
+</td>
 
-'</tr>'
-).join('')+
+<td>
+${esc(x.title)}
+</td>
 
-'</table>'
+<td>
 
+<span class="tag red">
+${esc(x.classification)}
+</span>
+
+</td>
+
+<td>
+${esc(x.created_at)}
+</td>
+
+<td>
+
+<button
+class="btn small"
+onclick="viewPdf(${x.id})"
+>
+VIEW PDF
+</button>
+
+</td>
+
+</tr>
+
+`).join('')}
+
+</table>
+
+`
 :
+'<div class="empty">No reports available for your clearance.</div>'
+}
 
-'<div class="empty">
-No reports available for your clearance.
-</div>'
+</div>
 
-)+
-
-'</div>';
+`;
 
 }
 
 
-/* SECTOR */
+/* =====================================================
+   SECTOR
+===================================================== */
 
 async function renderSector(){
 
-let r=await fetch('/api/sector');
+const r =
+await fetch('/api/sector');
+
 
 if(!r.ok)
 return toast('Unable to load directory.');
 
-let a=await r.json();
 
-$('userContent').innerHTML=
+const a =
+await r.json();
 
-'<div class="panel">'+
 
-'<h2>SECTOR PERSONNEL DIRECTORY</h2>'+
+$('userContent').innerHTML = `
 
-'<table class="table">'+
+<div class="panel">
 
-'<tr>'+
-'<th>CODE / USERNAME</th>'+
-'<th>IN-GAME NAME</th>'+
-'<th>RANK</th>'+
-'<th>UNIT</th>'+
-'<th>CLEARANCE</th>'+
-'</tr>'+
+<h2>
+SECTOR PERSONNEL DIRECTORY
+</h2>
 
-a.map(
-x=>
-'<tr>'+
 
-'<td class="mono">'+
-esc(x.username)+
-'</td>'+
+<table class="table">
 
-'<td>'+
-esc(x.in_game_name)+
-'</td>'+
+<tr>
 
-'<td>'+
-esc(x.rank)+
-'</td>'+
+<th>CODE / USERNAME</th>
+<th>IN-GAME NAME</th>
+<th>RANK</th>
+<th>UNIT</th>
+<th>CLEARANCE</th>
 
-'<td>'+
-esc(x.unit)+
-'</td>'+
+</tr>
 
-'<td>'+
-esc(x.clearance)+
-'</td>'+
 
-'</tr>'
-).join('')+
+${a.map(x => `
 
-'</table>'+
+<tr>
 
-'</div>';
+<td class="mono">
+${esc(x.username)}
+</td>
+
+<td>
+${esc(x.in_game_name)}
+</td>
+
+<td>
+${esc(x.rank)}
+</td>
+
+<td>
+${esc(x.unit)}
+</td>
+
+<td>
+${esc(x.clearance)}
+</td>
+
+</tr>
+
+`).join('')}
+
+</table>
+
+</div>
+
+`;
 
 }
 
 
-/* PROFILE */
+/* =====================================================
+   PROFILE
+===================================================== */
 
 function renderProfile(){
 
-$('userContent').innerHTML=
+$('userContent').innerHTML = `
 
-'<div class="panel">'+
+<div class="panel">
 
-'<h2>PERSONNEL FILE</h2>'+
+<h2>
+PERSONNEL FILE
+</h2>
 
-'<div class="grid">'+
 
-'<div class="card">'+
-'<div class="muted">USERNAME / CODE</div>'+
-'<b>'+esc(me.username)+'</b>'+
-'</div>'+
+<div class="grid">
 
-'<div class="card">'+
-'<div class="muted">RANK</div>'+
-'<b>'+esc(me.rank)+'</b>'+
-'</div>'+
+<div class="card">
 
-'<div class="card">'+
-'<div class="muted">UNIT</div>'+
-'<b>'+esc(me.unit)+'</b>'+
-'</div>'+
+<div class="muted">
+USERNAME / CODE
+</div>
 
-'</div>'+
+<b>
+${esc(me.username)}
+</b>
 
-'</div>';
+</div>
+
+
+<div class="card">
+
+<div class="muted">
+RANK
+</div>
+
+<b>
+${esc(me.rank)}
+</b>
+
+</div>
+
+
+<div class="card">
+
+<div class="muted">
+UNIT
+</div>
+
+<b>
+${esc(me.unit)}
+</b>
+
+</div>
+
+</div>
+
+
+<p class="muted">
+Server-side permissions are enforced by rank.
+IP/audit records are restricted to the LOG/ALPHA account.
+</p>
+
+</div>
+
+`;
 
 }
 
 
-/* ADMIN */
+/* =====================================================
+   ADMIN
+===================================================== */
 
 async function renderAdmin(){
 
 let [
 ra,
 ru
-]=await Promise.all([
+] = await Promise.all([
 
 fetch('/api/admin/applications'),
 
@@ -1703,329 +2158,574 @@ fetch('/api/admin/users')
 
 ]);
 
-if(!ra.ok||!ru.ok)
-return toast('Not authorized.');
 
-let apps=await ra.json();
-let users=await ru.json();
+if(!ra.ok || !ru.ok){
 
-let h=
+return toast(
+'Not authorized.'
+);
 
-'<div class="panel">'+
+}
 
-'<h2>APPLICATION CONTROL</h2>'+
 
-(
+let apps =
+await ra.json();
+
+let users =
+await ru.json();
+
+
+let h = `
+
+<div class="panel">
+
+<h2>
+APPLICATION CONTROL
+</h2>
+
+
+${
 apps.length
+?
+`
 
+<table class="table">
+
+<tr>
+
+<th>ID</th>
+<th>IN-GAME NAME</th>
+<th>DISCORD ID</th>
+<th>UNIT</th>
+<th>STATUS</th>
+<th>ACTION</th>
+
+</tr>
+
+
+${apps.map(a => `
+
+<tr>
+
+<td class="mono">
+${esc(a.id)}
+</td>
+
+
+<td>
+
+<b>
+${esc(a.name)}
+</b>
+
+<div class="muted">
+${esc(a.experience)}
+</div>
+
+</td>
+
+
+<td class="mono">
+
+${
+esc(
+a.discord_id ||
+'NOT PROVIDED'
+)
+}
+
+</td>
+
+
+<td>
+${esc(a.unit)}
+</td>
+
+
+<td>
+${esc(a.status)}
+</td>
+
+
+<td>
+
+${
+a.status === 'PENDING'
 ?
 
-'<table class="table">'+
+`
 
-'<tr>'+
-'<th>ID</th>'+
-'<th>DISCORD ID</th>'+
-'<th>IN-GAME NAME</th>'+
-'<th>UNIT</th>'+
-'<th>STATUS</th>'+
-'<th>ACTION</th>'+
-'</tr>'+
+<button
+class="btn green small"
+onclick="approve(${a.id})"
+>
+ACCEPT AS AGENT
+</button>
 
-apps.map(
-a=>
-'<tr>'+
+<button
+class="btn small"
+onclick="reject(${a.id})"
+>
+REJECT
+</button>
 
-'<td>'+
-esc(a.id)+
-'</td>'+
-
-'<td class="mono">'+
-esc(a.discord_id||'ERROR')+
-'</td>'+
-
-'<td><b>'+
-esc(a.name)+
-'</b><div class="muted">'+
-esc(a.experience)+
-'</div></td>'+
-
-'<td>'+
-esc(a.unit)+
-'</td>'+
-
-'<td>'+
-esc(a.status)+
-'</td>'+
-
-'<td>'+
-
-(
-a.status==='PENDING'
-
-?
-
-'<button class="btn green small" onclick="approve('+a.id+')">ACCEPT AS AGENT</button> '+
-'<button class="btn small" onclick="reject('+a.id+')">REJECT</button>'
+`
 
 :
-
 '—'
+}
 
-)+
+</td>
 
-'</td>'+
+</tr>
 
-'</tr>'
-).join('')+
+`).join('')}
 
-'</table>'
+</table>
 
+`
 :
+'<div class="empty">No applications.</div>'
+}
 
-'<div class="empty">
-No applications.
-</div>'
+</div>
 
-)+
-
-'</div>';
+`;
 
 
-h+=
+/* USERS */
 
-'<div class="panel">'+
+h += `
 
-'<h2>SECTOR TABLE</h2>'+
+<div class="panel">
 
-'<table class="table">'+
-
-'<tr>'+
-'<th>USERNAME / CODE</th>'+
-'<th>IN-GAME NAME</th>'+
-'<th>RANK</th>'+
-'<th>UNIT</th>'+
-'<th>CLEARANCE</th>'+
-'<th>CREATED</th>'+
-'</tr>'+
-
-users.map(
-u=>
-'<tr>'+
-
-'<td class="mono">'+
-esc(u.username)+
-'</td>'+
-
-'<td>'+
-esc(u.in_game_name)+
-'</td>'+
-
-'<td>'+
-esc(u.rank)+
-'</td>'+
-
-'<td>'+
-esc(u.unit)+
-'</td>'+
-
-'<td>'+
-esc(u.clearance)+
-'</td>'+
-
-'<td>'+
-esc(u.created_at)+
-'</td>'+
-
-'</tr>'
-).join('')+
-
-'</table>'+
-
-'</div>';
+<h2>
+SECTOR TABLE
+</h2>
 
 
-h+=
+<table class="table">
 
-'<div class="panel">'+
+<tr>
 
-'<h2>SEND MESSAGE / TASK</h2>'+
+<th>USERNAME / CODE</th>
+<th>IN-GAME NAME</th>
+<th>RANK</th>
+<th>UNIT</th>
+<th>CLEARANCE</th>
+<th>CREATED</th>
 
-'<div class="cols">'+
-
-'<div class="field">'+
-'<label>TARGET USERNAME / APPLICATION</label>'+
-'<input id="tmUser" class="input" placeholder="agent_001 or app:12">'+
-'</div>'+
-
-'<div class="field">'+
-'<label>TYPE</label>'+
-'<select id="tmType" class="input">'+
-'<option>MESSAGE</option>'+
-'<option>TASK</option>'+
-'<option>ASSIGNMENT</option>'+
-'</select>'+
-'</div>'+
-
-'</div>'+
-
-'<div class="field">'+
-'<label>SUBJECT</label>'+
-'<input id="tmSub" class="input">'+
-'</div>'+
-
-'<div class="field">'+
-'<label>MESSAGE / TASK DETAILS</label>'+
-'<textarea id="tmBody" class="input" rows="5"></textarea>'+
-'</div>'+
-
-'<button class="btn red" onclick="sendMessage()">SEND</button>'+
-
-'</div>';
+</tr>
 
 
-h+=
+${users.map(u => `
 
-'<div class="panel">'+
+<tr>
 
-'<h2>REGISTER INTELLIGENCE REPORT</h2>'+
+<td class="mono">
+${esc(u.username)}
+</td>
 
-'<div class="field">'+
-'<label>TITLE</label>'+
-'<input id="rt" class="input">'+
-'</div>'+
+<td>
+${esc(u.in_game_name)}
+</td>
 
-'<div class="field">'+
-'<label>CLASSIFICATION</label>'+
-'<select id="rc" class="input">'+
-'<option>CONFIDENTIAL</option>'+
-'<option>SECRET</option>'+
-'<option>TOP SECRET</option>'+
-'<option>OMEGA</option>'+
-'</select>'+
-'</div>'+
+<td>
+${esc(u.rank)}
+</td>
 
-'<div class="field">'+
-'<label>PDF</label>'+
-'<input id="rf" type="file" accept="application/pdf" class="input">'+
-'</div>'+
+<td>
+${esc(u.unit)}
+</td>
 
-'<button class="btn red" onclick="uploadReport()">
+<td>
+${esc(u.clearance)}
+</td>
+
+<td>
+${esc(u.created_at)}
+</td>
+
+</tr>
+
+`).join('')}
+
+</table>
+
+</div>
+
+`;
+
+
+/* MESSAGE */
+
+h += `
+
+<div class="panel">
+
+<h2>
+SEND MESSAGE / TASK
+</h2>
+
+
+<div class="cols">
+
+<div class="field">
+
+<label>
+TARGET USERNAME / APPLICATION
+</label>
+
+<input
+id="tmUser"
+class="input"
+placeholder="agent_001 or app:12"
+>
+
+</div>
+
+
+<div class="field">
+
+<label>
+TYPE
+</label>
+
+<select
+id="tmType"
+class="input"
+>
+
+<option>MESSAGE</option>
+<option>TASK</option>
+<option>ASSIGNMENT</option>
+
+</select>
+
+</div>
+
+</div>
+
+
+<div class="field">
+
+<label>
+SUBJECT
+</label>
+
+<input
+id="tmSub"
+class="input"
+>
+
+</div>
+
+
+<div class="field">
+
+<label>
+MESSAGE / TASK DETAILS
+</label>
+
+<textarea
+id="tmBody"
+class="input"
+rows="5"
+></textarea>
+
+</div>
+
+
+<button
+class="btn red"
+onclick="sendMessage()"
+>
+SEND
+</button>
+
+</div>
+
+`;
+
+
+/* REPORT */
+
+h += `
+
+<div class="panel">
+
+<h2>
+REGISTER INTELLIGENCE REPORT
+</h2>
+
+
+<div class="field">
+
+<label>TITLE</label>
+
+<input
+id="rt"
+class="input"
+>
+
+</div>
+
+
+<div class="field">
+
+<label>
+CLASSIFICATION
+</label>
+
+<select
+id="rc"
+class="input"
+>
+
+<option>CONFIDENTIAL</option>
+<option>SECRET</option>
+<option>TOP SECRET</option>
+<option>OMEGA</option>
+
+</select>
+
+</div>
+
+
+<div class="field">
+
+<label>PDF</label>
+
+<input
+id="rf"
+type="file"
+accept="application/pdf"
+class="input"
+>
+
+</div>
+
+
+<button
+class="btn red"
+onclick="uploadReport()"
+>
 REGISTER PDF REPORT
-</button>'+
+</button>
 
-'</div>';
+</div>
+
+`;
 
 
-if(me.rank==='COMMAND OF CIA'){
+/* COMMAND ACCOUNT */
 
-h+=
+if(me.rank === 'COMMAND OF CIA'){
 
-'<div class="panel">'+
+h += `
 
-'<h2>COMMAND // CREATE ACCOUNT</h2>'+
+<div class="panel">
 
-'<div class="cols">'+
+<h2>
+COMMAND // CREATE ACCOUNT
+</h2>
 
-'<div class="field"><label>USERNAME / CODE</label>'+
-'<input id="nu" class="input"></div>'+
 
-'<div class="field"><label>IN-GAME NAME</label>'+
-'<input id="nin" class="input"></div>'+
+<div class="cols">
 
-'<div class="field"><label>PASSWORD</label>'+
-'<input id="np" class="input" type="password"></div>'+
+<div class="field">
 
-'<div class="field"><label>RANK</label>'+
-'<select id="nr" class="input">'+
-'<option>AGENT</option>'+
-'<option>AGENT OFFICER</option>'+
-'<option>COMMAND OF CIA</option>'+
-'</select></div>'+
+<label>
+USERNAME / CODE
+</label>
 
-'<div class="field"><label>UNIT</label>'+
-'<input id="nunit" class="input" value="Intelligence Operations"></div>'+
+<input
+id="nu"
+class="input"
+>
 
-'<div class="field"><label>CLEARANCE</label>'+
-'<select id="nc" class="input">'+
-'<option>RESTRICTED</option>'+
-'<option>CONFIDENTIAL</option>'+
-'<option>SECRET</option>'+
-'<option>TOP SECRET</option>'+
-'<option>OMEGA</option>'+
-'</select></div>'+
+</div>
 
-'</div>'+
 
-'<button class="btn red" onclick="createUser()">
+<div class="field">
+
+<label>
+IN-GAME NAME
+</label>
+
+<input
+id="nin"
+class="input"
+>
+
+</div>
+
+
+<div class="field">
+
+<label>
+PASSWORD
+</label>
+
+<input
+id="np"
+class="input"
+type="password"
+>
+
+</div>
+
+
+<div class="field">
+
+<label>RANK</label>
+
+<select
+id="nr"
+class="input"
+>
+
+<option>AGENT</option>
+<option>AGENT OFFICER</option>
+<option>COMMAND OF CIA</option>
+
+</select>
+
+</div>
+
+
+<div class="field">
+
+<label>UNIT</label>
+
+<input
+id="nunit"
+class="input"
+value="Intelligence Operations"
+>
+
+</div>
+
+
+<div class="field">
+
+<label>CLEARANCE</label>
+
+<select
+id="nc"
+class="input"
+>
+
+<option>RESTRICTED</option>
+<option>CONFIDENTIAL</option>
+<option>SECRET</option>
+<option>TOP SECRET</option>
+<option>OMEGA</option>
+
+</select>
+
+</div>
+
+</div>
+
+
+<button
+class="btn red"
+onclick="createUser()"
+>
 CREATE ACCOUNT
-</button>'+
+</button>
 
-'</div>';
+</div>
 
-}
-
-
-$('userContent').innerHTML=h;
+`;
 
 }
 
 
-/* APPROVE */
+$('userContent').innerHTML = h;
+
+}
+
+
+/* =====================================================
+   APPROVE
+===================================================== */
 
 async function approve(id){
 
-let r=await fetch(
-'/api/admin/application/'+
-id+
+const r =
+await fetch(
+'/api/admin/application/' +
+id +
 '/approve',
 {
 method:'POST'
 }
 );
 
-let j=await r.json();
+
+const j =
+await r.json();
+
 
 if(!r.ok)
-return toast('Could not approve.');
+return toast(
+'Could not approve.'
+);
+
 
 toast(
-'Approved. Username: '+
+'Approved. Username: ' +
 j.username
 );
+
 
 renderAdmin();
 
 }
 
 
-/* REJECT */
+/* =====================================================
+   REJECT
+===================================================== */
 
 async function reject(id){
 
-let r=await fetch(
-'/api/admin/application/'+
-id+
+const r =
+await fetch(
+'/api/admin/application/' +
+id +
 '/reject',
 {
 method:'POST'
 }
 );
 
-if(!r.ok)
-return toast('Could not reject.');
 
-toast('Application rejected.');
+if(!r.ok)
+return toast(
+'Could not reject.'
+);
+
+
+toast(
+'Application rejected.'
+);
+
 
 renderAdmin();
 
 }
 
 
-/* MESSAGE */
+/* =====================================================
+   SEND MESSAGE
+===================================================== */
 
 async function sendMessage(){
 
-let b={
+let b = {
 
 target:$('tmUser').value.trim(),
 
@@ -2037,16 +2737,22 @@ type:$('tmType').value
 
 };
 
+
 if(
-!b.target||
-!b.subject||
+!b.target ||
+!b.subject ||
 !b.body
-)
+){
+
 return toast(
 'Complete target, subject and message.'
 );
 
-let r=await fetch(
+}
+
+
+let r =
+await fetch(
 '/api/admin/message',
 {
 method:'POST',
@@ -2057,12 +2763,14 @@ body:JSON.stringify(b)
 }
 );
 
+
 if(!r.ok){
 
-let j=await r.json();
+let j =
+await r.json();
 
 return toast(
-j.error==='USER_NOT_FOUND'
+j.error === 'USER_NOT_FOUND'
 ?
 'Username not found.'
 :
@@ -2071,18 +2779,24 @@ j.error==='USER_NOT_FOUND'
 
 }
 
-toast('Message/task sent.');
 
-$('tmBody').value='';
+toast(
+'Message/task sent.'
+);
+
+
+$('tmBody').value = '';
 
 }
 
 
-/* CREATE USER */
+/* =====================================================
+   CREATE USER
+===================================================== */
 
 async function createUser(){
 
-let b={
+let b = {
 
 username:$('nu').value.trim(),
 
@@ -2098,7 +2812,9 @@ in_game_name:$('nin').value.trim()
 
 };
 
-let r=await fetch(
+
+let r =
+await fetch(
 '/api/admin/users',
 {
 method:'POST',
@@ -2109,41 +2825,66 @@ body:JSON.stringify(b)
 }
 );
 
-if(!r.ok)
-return toast('Could not create account.');
 
-toast('Account created.');
+if(!r.ok)
+return toast(
+'Could not create account.'
+);
+
+
+toast(
+'Account created.'
+);
+
 
 renderAdmin();
 
 }
 
 
-/* REPORT */
+/* =====================================================
+   UPLOAD REPORT
+===================================================== */
 
 async function uploadReport(){
 
-let f=$('rf').files[0];
+let f =
+$('rf').files[0];
 
-let title=$('rt').value.trim();
+let title =
+$('rt').value.trim();
 
-if(!f||!title)
+
+if(!f || !title){
+
 return toast(
 'Enter title and select a PDF.'
 );
 
-let fd=new FormData();
+}
 
-fd.append('title',title);
+
+let fd =
+new FormData();
+
+fd.append(
+'title',
+title
+);
 
 fd.append(
 'classification',
 $('rc').value
 );
 
-fd.append('pdf',f);
+fd.append(
+'pdf',
+f
+);
 
-let r=await fetch(
+
+let r =
+await fetch(
 '/api/admin/reports',
 {
 method:'POST',
@@ -2151,26 +2892,31 @@ body:fd
 }
 );
 
+
 if(!r.ok)
 return toast(
 'Could not register report.'
 );
 
+
 toast(
 'PDF report registered.'
 );
+
 
 loadUser();
 
 }
 
 
-/* PDF */
+/* =====================================================
+   PDF
+===================================================== */
 
 function viewPdf(id){
 
-$('pdfFrame').src=
-'/api/reports/'+id;
+$('pdfFrame').src =
+'/api/reports/' + id;
 
 $('pdfModal').classList.remove(
 'hidden'
@@ -2178,9 +2924,10 @@ $('pdfModal').classList.remove(
 
 }
 
+
 function closePdf(){
 
-$('pdfFrame').src='';
+$('pdfFrame').src = '';
 
 $('pdfModal').classList.add(
 'hidden'
@@ -2189,7 +2936,9 @@ $('pdfModal').classList.add(
 }
 
 
-/* LOGOUT */
+/* =====================================================
+   LOGOUT
+===================================================== */
 
 async function logout(){
 
@@ -2210,45 +2959,32 @@ location.reload();
 }
 
 
-/* INITIAL SESSION */
+/* =====================================================
+   AUTO LOGIN / APPLICATION
+===================================================== */
 
 fetch(
 '/api/me',
 {
-credentials:'same-origin',
-cache:'no-store'
+credentials:'same-origin'
 }
 )
-
-.then(r=>r.json())
-
-.then(j=>{
+.then(
+r => r.json()
+)
+.then(
+j => {
 
 if(j.user){
 
-me=j.user;
-
-/*
-Log account must never enter
-the normal dashboard.
-*/
-
-if(
-me.username.toLowerCase()===LOG_ACCOUNT||
-me.rank===LOG_RANK
-){
-
-enterLog();
-
-}else{
+me = j.user;
 
 enterUser();
-
-}
 
 return;
 
 }
+
 
 return fetch(
 '/api/application/me',
@@ -2258,22 +2994,21 @@ credentials:'same-origin'
 );
 
 })
+.then(
+r => {
 
-.then(r=>{
-
-if(!r||!r.json)
-return null;
+if(!r) return null;
 
 return r.json();
 
 })
+.then(
+x => {
 
-.then(x=>{
-
-if(!x||!x.application)
+if(!x || !x.application)
 return;
 
-appdata=x;
+appdata = x;
 
 $('home').classList.add('hidden');
 
@@ -2281,51 +3016,61 @@ $('topActions').classList.add('hidden');
 
 $('appDash').classList.remove('hidden');
 
-$('appNameTitle').textContent=
+$('appNameTitle').textContent =
 x.application.name;
 
-$('appStatus').innerHTML=
-'<span class="tag amber">'+
-esc(x.application.status)+
-'</span>';
+$('appStatus').innerHTML = `
 
-$('appMeta').textContent=
-'Application #'+
-x.application.id+
-' // '+
+<span class="tag amber">
+${esc(x.application.status)}
+</span>
+
+`;
+
+$('appMeta').textContent =
+'Application #' +
+x.application.id +
+' // ' +
 x.application.unit;
 
 appTab('messages');
 
 })
+.catch(
+error => {
 
-.catch(()=>{
+console.error(
+'INITIAL LOAD ERROR:',
+error
+);
 
-/*
-Do not show LOG connection errors
-on the public homepage.
-*/
-
-});
+}
+);
 
 
-/* LANGUAGE */
+/* =====================================================
+   LANGUAGE
+===================================================== */
 
-let lang=
-localStorage.getItem('cia_lang')||
+let lang =
+localStorage.getItem('cia_lang') ||
 'en';
 
 
-const I18N={
+const I18N = {
 
 en:{
 LOGIN:'LOGIN',
-APPLY:'APPLY'
+APPLY:'APPLY',
+PDF_VIEWER:'CLASSIFIED PDF VIEWER',
+CLOSE:'CLOSE'
 },
 
 ar:{
 LOGIN:'تسجيل الدخول',
-APPLY:'التقديم'
+APPLY:'التقديم',
+PDF_VIEWER:'عارض ملف PDF السري',
+CLOSE:'إغلاق'
 }
 
 };
@@ -2333,55 +3078,55 @@ APPLY:'التقديم'
 
 function setLang(next){
 
-lang=
-next==='ar'
+lang =
+next === 'ar'
 ?
 'ar'
 :
 'en';
+
 
 localStorage.setItem(
 'cia_lang',
 lang
 );
 
-document.documentElement.lang=
+
+document.documentElement.lang =
 lang;
 
-document.documentElement.dir=
-lang==='ar'
+
+document.documentElement.dir =
+lang === 'ar'
 ?
 'rtl'
 :
 'ltr';
 
+
 document.body.classList.toggle(
 'rtl',
-lang==='ar'
+lang === 'ar'
 );
 
-$('langEN').classList.toggle(
+
+$('langEN')
+.classList
+.toggle(
 'active',
-lang==='en'
+lang === 'en'
 );
 
-$('langAR').classList.toggle(
+
+$('langAR')
+.classList
+.toggle(
 'active',
-lang==='ar'
+lang === 'ar'
 );
 
-$('topActions')
-.querySelectorAll('button')[0]
-.textContent=
-I18N[lang].LOGIN;
-
-$('topActions')
-.querySelectorAll('button')[1]
-.textContent=
-I18N[lang].APPLY;
 
 }
-
 
 setLang(lang);
 
