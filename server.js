@@ -1,9 +1,11 @@
+```js
 const express = require("express");
 const session = require("express-session");
 const fs = require("fs");
 const path = require("path");
 
 const app = express();
+
 const PORT = process.env.PORT || 3000;
 
 // =====================================================
@@ -23,11 +25,14 @@ if (
     !DISCORD_REDIRECT_URI ||
     !SESSION_SECRET
 ) {
-    console.error("Missing required environment variables.");
+    console.error(
+        "Missing required environment variables."
+    );
+
     process.exit(1);
 }
 
-// Render is behind a proxy
+// Render proxy
 app.set("trust proxy", 1);
 
 app.use(express.json());
@@ -40,60 +45,78 @@ app.use(express.urlencoded({ extended: true }));
 app.use(
     session({
         secret: SESSION_SECRET,
+
         resave: false,
+
         saveUninitialized: false,
+
         cookie: {
             httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
+
+            secure:
+                process.env.NODE_ENV === "production",
+
             sameSite: "lax",
-            maxAge: 24 * 60 * 60 * 1000
+
+            maxAge:
+                1000 *
+                60 *
+                60 *
+                24
         }
     })
 );
 
 // =====================================================
-// LOG DIRECTORIES
+// LOGS
 // =====================================================
 
-const logsDir = path.join(__dirname, "logs");
+const logsDir =
+    path.join(__dirname, "logs");
 
-const visitLogsFile = path.join(
-    logsDir,
-    "visit-logs.json"
-);
+const visitsFile =
+    path.join(
+        logsDir,
+        "visit-logs.json"
+    );
 
-const loginLogsFile = path.join(
-    logsDir,
-    "login-logs.json"
-);
+const loginFile =
+    path.join(
+        logsDir,
+        "discord-links.json"
+    );
 
 if (!fs.existsSync(logsDir)) {
-    fs.mkdirSync(logsDir, {
-        recursive: true
-    });
+    fs.mkdirSync(
+        logsDir,
+        {
+            recursive: true
+        }
+    );
 }
 
-if (!fs.existsSync(visitLogsFile)) {
+if (!fs.existsSync(visitsFile)) {
     fs.writeFileSync(
-        visitLogsFile,
+        visitsFile,
         "[]",
         "utf8"
     );
 }
 
-if (!fs.existsSync(loginLogsFile)) {
+if (!fs.existsSync(loginFile)) {
     fs.writeFileSync(
-        loginLogsFile,
+        loginFile,
         "[]",
         "utf8"
     );
 }
 
 // =====================================================
-// GET CLIENT IP
+// GET IP
 // =====================================================
 
-function getClientIP(req) {
+function getIP(req) {
+
     const forwarded =
         req.headers["x-forwarded-for"];
 
@@ -112,16 +135,18 @@ function getClientIP(req) {
 }
 
 // =====================================================
-// SAVE VISITOR LOG
+// SAVE VISIT
 // =====================================================
 
-function saveVisitLog(req) {
+function saveVisit(req) {
+
     let logs = [];
 
     try {
+
         logs = JSON.parse(
             fs.readFileSync(
-                visitLogsFile,
+                visitsFile,
                 "utf8"
             )
         );
@@ -129,16 +154,22 @@ function saveVisitLog(req) {
         if (!Array.isArray(logs)) {
             logs = [];
         }
+
     } catch {
+
         logs = [];
+
     }
 
-    const entry = {
-        type: "site_visit",
+    logs.push({
 
-        ip: getClientIP(req),
+        type:
+            "site_visit",
 
-        timestamp:
+        ip:
+            getIP(req),
+
+        time:
             new Date().toISOString(),
 
         userAgent:
@@ -151,17 +182,18 @@ function saveVisitLog(req) {
 
         path:
             req.originalUrl || "/"
-    };
 
-    logs.push(entry);
+    });
 
-    // Keep latest 10,000 visits
     if (logs.length > 10000) {
-        logs = logs.slice(-10000);
+
+        logs =
+            logs.slice(-10000);
+
     }
 
     fs.writeFileSync(
-        visitLogsFile,
+        visitsFile,
         JSON.stringify(
             logs,
             null,
@@ -171,21 +203,26 @@ function saveVisitLog(req) {
     );
 
     console.log(
-        `[SITE VISIT] ${entry.ip} | ${entry.timestamp}`
+        `[VISIT] ${getIP(req)}`
     );
 }
 
 // =====================================================
-// SAVE DISCORD LOGIN LOG
+// SAVE DISCORD LINK
 // =====================================================
 
-function saveLoginLog(user, req) {
+function saveDiscordLink(
+    user,
+    req
+) {
+
     let logs = [];
 
     try {
+
         logs = JSON.parse(
             fs.readFileSync(
-                loginLogsFile,
+                loginFile,
                 "utf8"
             )
         );
@@ -193,47 +230,54 @@ function saveLoginLog(user, req) {
         if (!Array.isArray(logs)) {
             logs = [];
         }
+
     } catch {
+
         logs = [];
+
     }
 
-    const entry = {
-        type: "discord_login",
+    logs.push({
 
-        discord: {
-            id: user.id,
-            username: user.username,
-            globalName:
-                user.global_name || null,
-            email:
-                user.email || null,
-            avatar:
-                user.avatar || null
-        },
+        type:
+            "discord_link",
 
-        ip: getClientIP(req),
+        discordId:
+            user.id,
 
-        timestamp:
+        username:
+            user.username,
+
+        globalName:
+            user.global_name || null,
+
+        email:
+            user.email || null,
+
+        avatar:
+            user.avatar || null,
+
+        ip:
+            getIP(req),
+
+        time:
             new Date().toISOString(),
 
         userAgent:
             req.headers["user-agent"] ||
-            "unknown",
-
-        language:
-            req.headers["accept-language"] ||
             "unknown"
-    };
 
-    logs.push(entry);
+    });
 
-    // Keep latest 10,000 logins
     if (logs.length > 10000) {
-        logs = logs.slice(-10000);
+
+        logs =
+            logs.slice(-10000);
+
     }
 
     fs.writeFileSync(
-        loginLogsFile,
+        loginFile,
         JSON.stringify(
             logs,
             null,
@@ -243,47 +287,43 @@ function saveLoginLog(user, req) {
     );
 
     console.log(
-        `[DISCORD LOGIN] ${user.username} | ${user.id} | ${entry.ip}`
+        `[DISCORD LINK] ${user.username} | ${user.id}`
     );
 }
 
 // =====================================================
-// AUTH MIDDLEWARE
+// LINK PAGE
 // =====================================================
 
-function requireDiscordLogin(
-    req,
-    res,
-    next
-) {
-    if (!req.session.user) {
-        return res.redirect(
-            "/auth/discord"
+app.get(
+    "/",
+    (req, res) => {
+
+        // Already linked
+        if (req.session.user) {
+
+            return res.sendFile(
+                path.join(
+                    __dirname,
+                    "public",
+                    "index.html"
+                )
+            );
+        }
+
+        // Record first visit
+        saveVisit(req);
+
+        // Show Discord link page
+        return res.sendFile(
+            path.join(
+                __dirname,
+                "public",
+                "link-discord.html"
+            )
         );
     }
-
-    next();
-}
-
-// =====================================================
-// FIRST VISIT
-// =====================================================
-
-app.get("/", (req, res, next) => {
-
-    // Already logged in
-    if (req.session.user) {
-        return next();
-    }
-
-    // Record IP immediately
-    saveVisitLog(req);
-
-    // Send visitor to Discord
-    return res.redirect(
-        "/auth/discord"
-    );
-});
+);
 
 // =====================================================
 // DISCORD OAUTH
@@ -295,6 +335,7 @@ app.get(
 
         const params =
             new URLSearchParams({
+
                 client_id:
                     DISCORD_CLIENT_ID,
 
@@ -306,13 +347,13 @@ app.get(
 
                 scope:
                     "identify email"
+
             });
 
-        const url =
+        res.redirect(
             "https://discord.com/oauth2/authorize?" +
-            params.toString();
-
-        res.redirect(url);
+            params.toString()
+        );
     }
 );
 
@@ -324,35 +365,42 @@ app.get(
     "/auth/discord/callback",
     async (req, res) => {
 
-        const code = req.query.code;
+        const code =
+            req.query.code;
 
         if (!code) {
+
             return res
                 .status(400)
                 .send(
-                    "Missing Discord OAuth code."
+                    "Discord authorization was cancelled."
                 );
         }
 
         try {
 
             // -----------------------------------------
-            // Exchange code for token
+            // Exchange code
             // -----------------------------------------
 
             const tokenResponse =
                 await fetch(
                     "https://discord.com/api/oauth2/token",
                     {
-                        method: "POST",
+
+                        method:
+                            "POST",
 
                         headers: {
+
                             "Content-Type":
                                 "application/x-www-form-urlencoded"
+
                         },
 
                         body:
                             new URLSearchParams({
+
                                 client_id:
                                     DISCORD_CLIENT_ID,
 
@@ -366,18 +414,16 @@ app.get(
 
                                 redirect_uri:
                                     DISCORD_REDIRECT_URI
+
                             })
+
                     }
                 );
 
             if (!tokenResponse.ok) {
 
-                const error =
-                    await tokenResponse.text();
-
                 console.error(
-                    "Discord token error:",
-                    error
+                    await tokenResponse.text()
                 );
 
                 return res
@@ -391,34 +437,30 @@ app.get(
                 await tokenResponse.json();
 
             // -----------------------------------------
-            // Get Discord account
+            // Get Discord user
             // -----------------------------------------
 
             const userResponse =
                 await fetch(
                     "https://discord.com/api/users/@me",
                     {
+
                         headers: {
+
                             Authorization:
                                 `${tokenData.token_type} ${tokenData.access_token}`
+
                         }
+
                     }
                 );
 
             if (!userResponse.ok) {
 
-                const error =
-                    await userResponse.text();
-
-                console.error(
-                    "Discord user error:",
-                    error
-                );
-
                 return res
                     .status(500)
                     .send(
-                        "Unable to retrieve Discord account."
+                        "Could not retrieve Discord account."
                     );
             }
 
@@ -426,10 +468,11 @@ app.get(
                 await userResponse.json();
 
             // -----------------------------------------
-            // User information
+            // User data
             // -----------------------------------------
 
             const user = {
+
                 id:
                     discordUser.id,
 
@@ -447,25 +490,27 @@ app.get(
                 avatar:
                     discordUser.avatar ||
                     null
+
             };
 
             // -----------------------------------------
             // Create session
             // -----------------------------------------
 
-            req.session.user = user;
+            req.session.user =
+                user;
 
             // -----------------------------------------
-            // Save login
+            // Save link
             // -----------------------------------------
 
-            saveLoginLog(
+            saveDiscordLink(
                 user,
                 req
             );
 
             // -----------------------------------------
-            // Enter website
+            // Redirect
             // -----------------------------------------
 
             return res.redirect(
@@ -482,7 +527,7 @@ app.get(
             return res
                 .status(500)
                 .send(
-                    "Authentication error."
+                    "Discord connection failed."
                 );
         }
     }
@@ -494,20 +539,29 @@ app.get(
 
 app.get(
     "/api/me",
-    requireDiscordLogin,
     (req, res) => {
 
+        if (!req.session.user) {
+
+            return res.json({
+                linked: false
+            });
+        }
+
         res.json({
-            authenticated: true,
+
+            linked:
+                true,
 
             user:
                 req.session.user
+
         });
     }
 );
 
 // =====================================================
-// LOGOUT
+// LOGOUT / UNLINK
 // =====================================================
 
 app.get(
@@ -516,21 +570,37 @@ app.get(
 
         req.session.destroy(
             () => {
+
                 res.redirect(
-                    "/auth/discord"
+                    "/"
                 );
+
             }
         );
     }
 );
 
 // =====================================================
-// PROTECT ALL PUBLIC FILES
+// PROTECT EVERYTHING
 // =====================================================
 
 app.use(
-    requireDiscordLogin
+    (req, res, next) => {
+
+        if (!req.session.user) {
+
+            return res.redirect(
+                "/"
+            );
+        }
+
+        next();
+    }
 );
+
+// =====================================================
+// PUBLIC WEBSITE
+// =====================================================
 
 app.use(
     express.static(
@@ -557,13 +627,15 @@ app.use(
 );
 
 // =====================================================
-// ERROR HANDLER
+// ERROR
 // =====================================================
 
 app.use(
     (err, req, res, next) => {
 
-        console.error(err);
+        console.error(
+            err
+        );
 
         res
             .status(500)
@@ -583,7 +655,238 @@ app.listen(
     () => {
 
         console.log(
-            `CIA RP server running on port ${PORT}`
+            `CIA RP running on port ${PORT}`
         );
+
     }
 );
+```
+
+### 2. أنشئ هذا الملف
+
+داخل:
+
+```text
+public/
+```
+
+أنشئ:
+
+```text
+link-discord.html
+```
+
+وحط فيه:
+
+```html
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>ربط حساب Discord</title>
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+
+            min-height: 100vh;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            background:
+                radial-gradient(
+                    circle at top,
+                    #182238,
+                    #070b12 60%
+                );
+
+            color: white;
+
+            font-family:
+                Arial,
+                sans-serif;
+        }
+
+        .card {
+
+            width: min(
+                92%,
+                480px
+            );
+
+            padding: 42px 32px;
+
+            text-align: center;
+
+            border:
+                1px solid
+                rgba(255,255,255,.1);
+
+            border-radius: 18px;
+
+            background:
+                rgba(14,19,30,.92);
+
+            box-shadow:
+                0 25px 80px
+                rgba(0,0,0,.45);
+
+        }
+
+        .logo {
+
+            width: 72px;
+
+            height: 72px;
+
+            margin:
+                0 auto 22px;
+
+            border-radius: 50%;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            background:
+                #5865F2;
+
+            font-size: 32px;
+
+            font-weight: bold;
+
+        }
+
+        h1 {
+
+            margin:
+                0 0 12px;
+
+            font-size: 27px;
+
+        }
+
+        p {
+
+            margin:
+                0 auto 28px;
+
+            max-width: 380px;
+
+            line-height: 1.8;
+
+            color:
+                #aeb7c8;
+
+        }
+
+        .button {
+
+            display: block;
+
+            width: 100%;
+
+            padding: 14px;
+
+            border: 0;
+
+            border-radius: 10px;
+
+            background:
+                #5865F2;
+
+            color: white;
+
+            text-decoration: none;
+
+            font-size: 16px;
+
+            font-weight: bold;
+
+            cursor: pointer;
+
+            transition:
+                .2s;
+
+        }
+
+        .button:hover {
+
+            background:
+                #4752c4;
+
+            transform:
+                translateY(-1px);
+
+        }
+
+        .note {
+
+            margin-top: 18px;
+
+            font-size: 12px;
+
+            color:
+                #687386;
+
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+    <main class="card">
+
+        <div class="logo">
+            D
+        </div>
+
+        <h1>
+            يجب ربط حسابك في Discord
+        </h1>
+
+        <p>
+            للوصول إلى النظام، يجب ربط حساب
+            Discord الخاص بك أولًا.
+            اضغط على الزر أدناه لإتمام عملية الربط
+            بشكل آمن.
+        </p>
+
+        <a
+            class="button"
+            href="/auth/discord"
+        >
+            ربط حساب Discord
+        </a>
+
+        <div class="note">
+            لن تتمكن من متابعة الموقع قبل إتمام الربط.
+        </div>
+
+    </main>
+
+</body>
+
+</html>
+```
