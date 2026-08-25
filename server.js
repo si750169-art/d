@@ -1,31 +1,204 @@
 const express = require("express");
 const session = require("express-session");
+const SQLiteStore = require("connect-sqlite3")(session);
+const Database = require("better-sqlite3");
+const multer = require("multer");
 const path = require("path");
+const fs = require("fs");
 const crypto = require("crypto");
 
 const app = express();
+
 const PORT = process.env.PORT || 3000;
+
+// =====================================================
+// ENVIRONMENT
+// =====================================================
 
 const CLIENT_ID = process.env.DISCORD_CLIENT_ID;
 const CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET;
 const REDIRECT_URI = process.env.DISCORD_REDIRECT_URI;
 const SESSION_SECRET = process.env.SESSION_SECRET;
 
-if (!CLIENT_ID || !CLIENT_SECRET || !REDIRECT_URI || !SESSION_SECRET) {
-    console.error("=================================");
-    console.error("Missing environment variables:");
+const DB_DIR =
+    process.env.DB_DIR || "/var/data";
+
+const DB_PATH =
+    process.env.DB_PATH ||
+    path.join(DB_DIR, "cia.db");
+
+const REPORTS_DIR =
+    process.env.REPORTS_DIR ||
+    path.join(DB_DIR, "reports");
+
+// =====================================================
+// VALIDATE ENV
+// =====================================================
+
+if (
+    !CLIENT_ID ||
+    !CLIENT_SECRET ||
+    !REDIRECT_URI ||
+    !SESSION_SECRET
+) {
+    console.error("");
+    console.error("==========================================");
+    console.error("MISSING REQUIRED ENVIRONMENT VARIABLES");
+    console.error("==========================================");
     console.error("DISCORD_CLIENT_ID");
     console.error("DISCORD_CLIENT_SECRET");
     console.error("DISCORD_REDIRECT_URI");
     console.error("SESSION_SECRET");
-    console.error("=================================");
+    console.error("==========================================");
+    console.error("");
+
     process.exit(1);
 }
 
+// =====================================================
+// DIRECTORIES
+// =====================================================
+
+fs.mkdirSync(DB_DIR, {
+    recursive: true
+});
+
+fs.mkdirSync(REPORTS_DIR, {
+    recursive: true
+});
+
+// =====================================================
+// EXPRESS
+// =====================================================
+
 app.set("trust proxy", 1);
 
-app.use(express.json({ limit: "10mb" }));
-app.use(express.urlencoded({ extended: true }));
+app.use(
+    express.json({
+        limit: "10mb"
+    })
+);
+
+app.use(
+    express.urlencoded({
+        extended: true,
+        limit: "10mb"
+    })
+);
+
+// =====================================================
+// SQLITE
+// =====================================================
+
+const db = new Database(DB_PATH);
+
+db.pragma("journal_mode = WAL");
+db.pragma("foreign_keys = ON");
+
+// =====================================================
+// DATABASE TABLES
+// =====================================================
+
+db.exec(`
+    CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+        username TEXT NOT NULL UNIQUE,
+        password TEXT NOT NULL,
+
+        rank TEXT NOT NULL DEFAULT 'AGENT',
+        unit TEXT NOT NULL DEFAULT 'Intelligence Operations',
+        clearance TEXT NOT NULL DEFAULT 'RESTRICTED',
+
+        in_game_name TEXT NOT NULL,
+
+        discord_id TEXT,
+        application_id INTEGER,
+
+        created_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS applications (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+        token TEXT NOT NULL UNIQUE,
+
+        discord_id TEXT NOT NULL,
+        discord_username TEXT,
+
+        name TEXT NOT NULL,
+        age TEXT NOT NULL,
+        unit TEXT NOT NULL,
+
+        experience TEXT NOT NULL,
+        why TEXT NOT NULL,
+
+        status TEXT NOT NULL DEFAULT 'PENDING',
+
+        created_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS messages (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+        user_id INTEGER,
+        application_id INTEGER,
+
+        subject TEXT NOT NULL,
+        sender_label TEXT NOT NULL,
+
+        body TEXT NOT NULL,
+        type TEXT NOT NULL DEFAULT 'MESSAGE',
+
+        read INTEGER NOT NULL DEFAULT 0,
+
+        created_at TEXT NOT NULL,
+
+        FOREIGN KEY(user_id)
+            REFERENCES users(id)
+            ON DELETE CASCADE,
+
+        FOREIGN KEY(application_id)
+            REFERENCES applications(id)
+            ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS reports (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+        title TEXT NOT NULL,
+        classification TEXT NOT NULL,
+
+        filename TEXT,
+        original_name TEXT,
+
+        created_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS audit (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+        actor_label TEXT NOT NULL,
+        action TEXT NOT NULL,
+
+        ip TEXT,
+        details TEXT,
+
+        created_at TEXT NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_app_discord
+        ON applications(discord_id);
+
+    CREATE INDEX IF NOT EXISTS idx_messages_user
+        ON messages(user_id);
+
+    CREATE INDEX IF NOT EXISTS idx_messages_application
+        ON messages(application_id);
+
+    CREATE INDEX IF NOT EXISTS idx_users_discord
+        ON users(discord_id);
+`);
 
 // =====================================================
 // SESSION
@@ -33,54 +206,133 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use(
     session({
+        store: new SQLiteStore({
+            db: "sessions.sqlite",
+            dir: DB_DIR
+        }),
+
         secret: SESSION_SECRET,
+
         resave: false,
+
         saveUninitialized: false,
 
         cookie: {
             httpOnly: true,
             secure: true,
             sameSite: "lax",
-            maxAge: 7 * 24 * 60 * 60 * 1000
+            maxAge:
+                7 * 24 * 60 * 60 * 1000
         }
     })
 );
 
 // =====================================================
-// SIMPLE DATABASE
-// =====================================================
-
-const users = [];
-const applications = [];
-const messages = [];
-const reports = [];
-const audit = [];
-
-let nextUserId = 1;
-let nextApplicationId = 1;
-let nextMessageId = 1;
-let nextReportId = 1;
-
-// =====================================================
 // HELPERS
 // =====================================================
 
-function hashPassword(password) {
-    return crypto
-        .createHash("sha256")
-        .update(password)
-        .digest("hex");
-}
-
-function generateToken() {
-    return crypto.randomBytes(32).toString("hex");
-}
-
-function currentTime() {
+function now() {
     return new Date().toISOString();
 }
 
+function token() {
+    return crypto
+        .randomBytes(32)
+        .toString("hex");
+}
+
+function hashPassword(password) {
+    const salt =
+        crypto.randomBytes(16).toString("hex");
+
+    const hash =
+        crypto
+            .scryptSync(
+                String(password),
+                salt,
+                64
+            )
+            .toString("hex");
+
+    return `${salt}:${hash}`;
+}
+
+function verifyPassword(password, stored) {
+    try {
+        const parts =
+            String(stored).split(":");
+
+        if (parts.length !== 2) {
+            return false;
+        }
+
+        const salt = parts[0];
+        const originalHash =
+            Buffer.from(parts[1], "hex");
+
+        const testHash =
+            crypto.scryptSync(
+                String(password),
+                salt,
+                64
+            );
+
+        return (
+            originalHash.length ===
+                testHash.length &&
+            crypto.timingSafeEqual(
+                originalHash,
+                testHash
+            )
+        );
+    } catch {
+        return false;
+    }
+}
+
+function safeUser(user) {
+    if (!user) return null;
+
+    return {
+        id: user.id,
+        username: user.username,
+        rank: user.rank,
+        unit: user.unit,
+        clearance: user.clearance,
+        in_game_name: user.in_game_name
+    };
+}
+
+function audit(
+    actor,
+    action,
+    ip,
+    details
+) {
+    db.prepare(`
+        INSERT INTO audit (
+            actor_label,
+            action,
+            ip,
+            details,
+            created_at
+        )
+        VALUES (?, ?, ?, ?, ?)
+    `).run(
+        actor || "SYSTEM",
+        action,
+        ip || null,
+        details || "",
+        now()
+    );
+}
+
+// =====================================================
+// MIDDLEWARE
+// =====================================================
+
 function requireDiscord(req, res, next) {
+
     if (!req.session.discord) {
         return res.status(401).json({
             error: "DISCORD_REQUIRED"
@@ -91,428 +343,588 @@ function requireDiscord(req, res, next) {
 }
 
 function requireLogin(req, res, next) {
-    if (!req.session.user) {
+
+    if (!req.session.userId) {
         return res.status(401).json({
             error: "LOGIN_REQUIRED"
         });
     }
+
+    const user =
+        db.prepare(`
+            SELECT *
+            FROM users
+            WHERE id = ?
+        `).get(req.session.userId);
+
+    if (!user) {
+
+        req.session.userId = null;
+
+        return res.status(401).json({
+            error: "LOGIN_REQUIRED"
+        });
+    }
+
+    req.user = user;
 
     next();
 }
 
 function requireAdmin(req, res, next) {
-    if (!req.session.user) {
-        return res.status(401).json({
-            error: "LOGIN_REQUIRED"
-        });
-    }
 
-    if (
-        req.session.user.rank !== "AGENT OFFICER" &&
-        req.session.user.rank !== "COMMAND OF CIA"
-    ) {
-        return res.status(403).json({
-            error: "NOT_AUTHORIZED"
-        });
-    }
+    requireLogin(req, res, () => {
 
-    next();
+        if (
+            req.user.rank !== "AGENT OFFICER" &&
+            req.user.rank !== "COMMAND OF CIA"
+        ) {
+            return res.status(403).json({
+                error: "NOT_AUTHORIZED"
+            });
+        }
+
+        next();
+    });
 }
 
 function requireCommand(req, res, next) {
-    if (!req.session.user) {
-        return res.status(401).json({
-            error: "LOGIN_REQUIRED"
-        });
-    }
 
-    if (req.session.user.rank !== "COMMAND OF CIA") {
-        return res.status(403).json({
-            error: "NOT_AUTHORIZED"
-        });
-    }
+    requireLogin(req, res, () => {
 
-    next();
+        if (
+            req.user.rank !==
+            "COMMAND OF CIA"
+        ) {
+            return res.status(403).json({
+                error: "NOT_AUTHORIZED"
+            });
+        }
+
+        next();
+    });
 }
 
 // =====================================================
 // DISCORD OAUTH
 // =====================================================
 
-app.get("/auth/discord", (req, res) => {
+app.get(
+    "/auth/discord",
+    (req, res) => {
 
-    const params = new URLSearchParams({
-        client_id: CLIENT_ID,
-        redirect_uri: REDIRECT_URI,
-        response_type: "code",
-        scope: "identify"
-    });
+        const params =
+            new URLSearchParams({
+                client_id: CLIENT_ID,
+                redirect_uri: REDIRECT_URI,
+                response_type: "code",
+                scope: "identify"
+            });
 
-    res.redirect(
-        "https://discord.com/oauth2/authorize?" +
-        params.toString()
-    );
-});
+        res.redirect(
+            "https://discord.com/oauth2/authorize?" +
+            params.toString()
+        );
+    }
+);
 
 // =====================================================
 // DISCORD CALLBACK
 // =====================================================
 
-app.get("/auth/discord/callback", async (req, res) => {
+app.get(
+    "/auth/discord/callback",
+    async (req, res) => {
 
-    const code = req.query.code;
+        const code = req.query.code;
 
-    if (!code) {
-        return res.status(400).send(
-            "Discord authorization was cancelled."
-        );
-    }
-
-    try {
-
-        const tokenResponse = await fetch(
-            "https://discord.com/api/oauth2/token",
-            {
-                method: "POST",
-
-                headers: {
-                    "Content-Type":
-                        "application/x-www-form-urlencoded"
-                },
-
-                body: new URLSearchParams({
-                    client_id: CLIENT_ID,
-                    client_secret: CLIENT_SECRET,
-                    grant_type: "authorization_code",
-                    code,
-                    redirect_uri: REDIRECT_URI
-                })
-            }
-        );
-
-        const tokenText = await tokenResponse.text();
-
-        if (!tokenResponse.ok) {
-            console.error(
-                "DISCORD TOKEN ERROR:",
-                tokenText
-            );
-
-            return res.status(500).send(
-                "Discord authentication failed."
+        if (!code) {
+            return res.status(400).send(
+                "Discord authorization was cancelled."
             );
         }
 
-        const token = JSON.parse(tokenText);
+        try {
 
-        const userResponse = await fetch(
-            "https://discord.com/api/users/@me",
-            {
-                headers: {
-                    Authorization:
-                        `Bearer ${token.access_token}`
-                }
-            }
-        );
+            const tokenResponse =
+                await fetch(
+                    "https://discord.com/api/oauth2/token",
+                    {
+                        method: "POST",
 
-        const userText = await userResponse.text();
+                        headers: {
+                            "Content-Type":
+                                "application/x-www-form-urlencoded"
+                        },
 
-        if (!userResponse.ok) {
-            console.error(
-                "DISCORD USER ERROR:",
-                userText
-            );
+                        body:
+                            new URLSearchParams({
+                                client_id:
+                                    CLIENT_ID,
 
-            return res.status(500).send(
-                "Unable to retrieve Discord account."
-            );
-        }
+                                client_secret:
+                                    CLIENT_SECRET,
 
-        const discordUser = JSON.parse(userText);
+                                grant_type:
+                                    "authorization_code",
 
-        console.log(
-            "Discord connected:",
-            discordUser.username,
-            discordUser.id
-        );
+                                code,
 
-        // =================================================
-        // IMPORTANT
-        // Discord is ONLY linked.
-        // NO CIA account is created here.
-        // =================================================
+                                redirect_uri:
+                                    REDIRECT_URI
+                            })
+                    }
+                );
 
-        req.session.discord = {
-            id: discordUser.id,
-            username: discordUser.username,
-            globalName: discordUser.global_name || null,
-            avatar: discordUser.avatar || null
-        };
+            const tokenText =
+                await tokenResponse.text();
 
-        // Remove previous CIA login when changing Discord
-        req.session.user = null;
+            if (!tokenResponse.ok) {
 
-        req.session.save(error => {
-
-            if (error) {
                 console.error(
-                    "SESSION SAVE ERROR:",
-                    error
+                    "DISCORD TOKEN ERROR:",
+                    tokenText
                 );
 
                 return res.status(500).send(
-                    "Could not save Discord session."
+                    "Discord authentication failed."
                 );
             }
 
-            res.redirect("/");
-        });
+            const oauthToken =
+                JSON.parse(tokenText);
 
-    } catch (error) {
+            const userResponse =
+                await fetch(
+                    "https://discord.com/api/users/@me",
+                    {
+                        headers: {
+                            Authorization:
+                                `Bearer ${oauthToken.access_token}`
+                        }
+                    }
+                );
 
-        console.error(
-            "DISCORD OAUTH ERROR:",
-            error
-        );
+            const userText =
+                await userResponse.text();
 
-        res.status(500).send(
-            "Discord OAuth error."
-        );
+            if (!userResponse.ok) {
+
+                console.error(
+                    "DISCORD USER ERROR:",
+                    userText
+                );
+
+                return res.status(500).send(
+                    "Unable to retrieve Discord account."
+                );
+            }
+
+            const discordUser =
+                JSON.parse(userText);
+
+            // =================================================
+            // IMPORTANT:
+            // Discord linking DOES NOT create a CIA account.
+            // =================================================
+
+            req.session.discord = {
+                id: discordUser.id,
+
+                username:
+                    discordUser.username,
+
+                globalName:
+                    discordUser.global_name || null,
+
+                avatar:
+                    discordUser.avatar || null
+            };
+
+            // Don't automatically log into CIA.
+            req.session.userId = null;
+
+            // Find existing approved CIA account
+            // ONLY for information.
+            const existingUser =
+                db.prepare(`
+                    SELECT *
+                    FROM users
+                    WHERE discord_id = ?
+                    LIMIT 1
+                `).get(discordUser.id);
+
+            if (existingUser) {
+
+                console.log(
+                    "Discord linked to existing CIA account:",
+                    existingUser.username
+                );
+
+            } else {
+
+                console.log(
+                    "Discord connected:",
+                    discordUser.username,
+                    discordUser.id
+                );
+            }
+
+            audit(
+                discordUser.username,
+                "DISCORD_CONNECT",
+                req.ip,
+                `Discord ID: ${discordUser.id}`
+            );
+
+            req.session.save(
+                error => {
+
+                    if (error) {
+
+                        console.error(
+                            "SESSION SAVE ERROR:",
+                            error
+                        );
+
+                        return res.status(500).send(
+                            "Could not save Discord session."
+                        );
+                    }
+
+                    res.redirect("/");
+                }
+            );
+
+        } catch (error) {
+
+            console.error(
+                "DISCORD OAUTH ERROR:",
+                error
+            );
+
+            res.status(500).send(
+                "Discord OAuth error."
+            );
+        }
     }
-});
+);
 
 // =====================================================
 // DISCORD STATUS
 // =====================================================
 
-app.get("/api/discord", (req, res) => {
+app.get(
+    "/api/discord",
+    (req, res) => {
 
-    if (!req.session.discord) {
-        return res.json({
-            connected: false
-        });
-    }
-
-    res.json({
-        connected: true,
-        discord: req.session.discord
-    });
-});
-
-// =====================================================
-// CURRENT CIA USER
-// =====================================================
-
-app.get("/api/me", requireDiscord, (req, res) => {
-
-    if (!req.session.user) {
-        return res.json({
-            user: null
-        });
-    }
-
-    const user = users.find(
-        x => x.id === req.session.user.id
-    );
-
-    if (!user) {
-        req.session.user = null;
-
-        return res.json({
-            user: null
-        });
-    }
-
-    res.json({
-        user: {
-            id: user.id,
-            username: user.username,
-            rank: user.rank,
-            unit: user.unit,
-            clearance: user.clearance,
-            in_game_name: user.in_game_name
+        if (!req.session.discord) {
+            return res.json({
+                connected: false
+            });
         }
-    });
-});
+
+        res.json({
+            connected: true,
+            discord:
+                req.session.discord
+        });
+    }
+);
+
+// =====================================================
+// CURRENT USER
+// =====================================================
+
+app.get(
+    "/api/me",
+    requireDiscord,
+    (req, res) => {
+
+        if (!req.session.userId) {
+            return res.json({
+                user: null
+            });
+        }
+
+        const user =
+            db.prepare(`
+                SELECT *
+                FROM users
+                WHERE id = ?
+            `).get(req.session.userId);
+
+        if (!user) {
+
+            req.session.userId = null;
+
+            return res.json({
+                user: null
+            });
+        }
+
+        res.json({
+            user: safeUser(user)
+        });
+    }
+);
 
 // =====================================================
 // CIA LOGIN
 // =====================================================
 
-app.post("/api/login", requireDiscord, (req, res) => {
+app.post(
+    "/api/login",
+    requireDiscord,
+    (req, res) => {
 
-    const username = String(
-        req.body.username || ""
-    ).trim();
+        const username =
+            String(
+                req.body.username || ""
+            ).trim();
 
-    const password = String(
-        req.body.password || ""
-    );
+        const password =
+            String(
+                req.body.password || ""
+            );
 
-    if (!username || !password) {
-        return res.status(400).json({
-            error: "MISSING_CREDENTIALS"
-        });
-    }
-
-    const user = users.find(
-        x =>
-            x.username.toLowerCase() ===
-            username.toLowerCase()
-    );
-
-    if (!user) {
-        return res.status(401).json({
-            error: "INVALID_CREDENTIALS"
-        });
-    }
-
-    const passwordHash = hashPassword(password);
-
-    if (passwordHash !== user.password) {
-        return res.status(401).json({
-            error: "INVALID_CREDENTIALS"
-        });
-    }
-
-    req.session.user = {
-        id: user.id
-    };
-
-    audit.push({
-        created_at: currentTime(),
-        actor_label: user.username,
-        action: "LOGIN",
-        ip: req.ip,
-        details: "CIA personnel login"
-    });
-
-    req.session.save(error => {
-
-        if (error) {
-            console.error(error);
-
-            return res.status(500).json({
-                error: "SESSION_ERROR"
+        if (
+            !username ||
+            !password
+        ) {
+            return res.status(400).json({
+                error:
+                    "MISSING_CREDENTIALS"
             });
         }
 
-        res.json({
-            success: true,
+        const user =
+            db.prepare(`
+                SELECT *
+                FROM users
+                WHERE LOWER(username)
+                    = LOWER(?)
+                LIMIT 1
+            `).get(username);
 
-            user: {
-                id: user.id,
-                username: user.username,
-                rank: user.rank,
-                unit: user.unit,
-                clearance: user.clearance,
-                in_game_name: user.in_game_name
+        if (!user) {
+
+            return res.status(401).json({
+                error:
+                    "INVALID_CREDENTIALS"
+            });
+        }
+
+        if (
+            !verifyPassword(
+                password,
+                user.password
+            )
+        ) {
+
+            return res.status(401).json({
+                error:
+                    "INVALID_CREDENTIALS"
+            });
+        }
+
+        // Optional Discord association
+        // when a CIA account logs in.
+        if (
+            !user.discord_id &&
+            req.session.discord
+        ) {
+
+            db.prepare(`
+                UPDATE users
+                SET discord_id = ?
+                WHERE id = ?
+            `).run(
+                req.session.discord.id,
+                user.id
+            );
+        }
+
+        req.session.userId =
+            user.id;
+
+        audit(
+            user.username,
+            "CIA_LOGIN",
+            req.ip,
+            "Personnel login"
+        );
+
+        req.session.save(
+            error => {
+
+                if (error) {
+
+                    console.error(error);
+
+                    return res.status(500).json({
+                        error:
+                            "SESSION_ERROR"
+                    });
+                }
+
+                res.json({
+                    success: true,
+                    user: safeUser(user)
+                });
             }
-        });
-    });
-});
+        );
+    }
+);
 
 // =====================================================
 // LOGOUT
 // =====================================================
 
-app.post("/api/logout", (req, res) => {
+app.post(
+    "/api/logout",
+    (req, res) => {
 
-    req.session.destroy(() => {
-        res.json({
-            success: true
+        req.session.userId = null;
+
+        req.session.save(() => {
+
+            res.json({
+                success: true
+            });
         });
-    });
-});
+    }
+);
 
 // =====================================================
 // APPLICATION SUBMIT
 // =====================================================
 
-app.post("/api/applications", requireDiscord, (req, res) => {
+app.post(
+    "/api/applications",
+    requireDiscord,
+    (req, res) => {
 
-    const name = String(
-        req.body.name || ""
-    ).trim();
+        const name =
+            String(
+                req.body.name || ""
+            ).trim();
 
-    const age = String(
-        req.body.age || ""
-    ).trim();
+        const age =
+            String(
+                req.body.age || ""
+            ).trim();
 
-    const unit = String(
-        req.body.unit || ""
-    ).trim();
+        const unit =
+            String(
+                req.body.unit || ""
+            ).trim();
 
-    const experience = String(
-        req.body.experience || ""
-    ).trim();
+        const experience =
+            String(
+                req.body.experience || ""
+            ).trim();
 
-    const why = String(
-        req.body.why || ""
-    ).trim();
+        const why =
+            String(
+                req.body.why || ""
+            ).trim();
 
-    if (
-        !name ||
-        !age ||
-        !unit ||
-        !experience ||
-        !why
-    ) {
-        return res.status(400).json({
-            error: "MISSING_FIELDS"
-        });
-    }
+        if (
+            !name ||
+            !age ||
+            !unit ||
+            !experience ||
+            !why
+        ) {
+            return res.status(400).json({
+                error:
+                    "MISSING_FIELDS"
+            });
+        }
 
-    // Prevent duplicate pending application
-    const existing = applications.find(
-        x =>
-            x.discord_id === req.session.discord.id &&
-            x.status === "PENDING"
-    );
+        // Don't allow multiple pending
+        // applications for same Discord.
+        const existing =
+            db.prepare(`
+                SELECT *
+                FROM applications
+                WHERE discord_id = ?
+                AND status = 'PENDING'
+                ORDER BY id DESC
+                LIMIT 1
+            `).get(
+                req.session.discord.id
+            );
 
-    if (existing) {
+        if (existing) {
+
+            req.session.applicationToken =
+                existing.token;
+
+            return res.json({
+                success: true,
+                token:
+                    existing.token
+            });
+        }
+
+        const applicationToken =
+            token();
+
+        const result =
+            db.prepare(`
+                INSERT INTO applications (
+                    token,
+                    discord_id,
+                    discord_username,
+                    name,
+                    age,
+                    unit,
+                    experience,
+                    why,
+                    status,
+                    created_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'PENDING', ?)
+            `).run(
+
+                applicationToken,
+
+                req.session.discord.id,
+
+                req.session.discord.username,
+
+                name,
+
+                age,
+
+                unit,
+
+                experience,
+
+                why,
+
+                now()
+            );
 
         req.session.applicationToken =
-            existing.token;
+            applicationToken;
 
-        return res.json({
+        audit(
+            req.session.discord.username,
+            "APPLICATION_SUBMITTED",
+            req.ip,
+            `Application #${result.lastInsertRowid}`
+        );
+
+        res.json({
             success: true,
-            token: existing.token
+            token:
+                applicationToken
         });
     }
-
-    const token = generateToken();
-
-    const application = {
-        id: nextApplicationId++,
-        token,
-
-        discord_id:
-            req.session.discord.id,
-
-        discord_username:
-            req.session.discord.username,
-
-        name,
-        age,
-        unit,
-        experience,
-        why,
-
-        status: "PENDING",
-
-        created_at: currentTime()
-    };
-
-    applications.push(application);
-
-    req.session.applicationToken = token;
-
-    res.json({
-        success: true,
-        token
-    });
-});
+);
 
 // =====================================================
 // APPLICATION ME
@@ -523,29 +935,40 @@ app.get(
     requireDiscord,
     (req, res) => {
 
-        const token =
-            req.session.applicationToken;
-
         let application = null;
 
-        if (token) {
+        if (
+            req.session.applicationToken
+        ) {
+
             application =
-                applications.find(
-                    x => x.token === token
+                db.prepare(`
+                    SELECT *
+                    FROM applications
+                    WHERE token = ?
+                    LIMIT 1
+                `).get(
+                    req.session.applicationToken
+                );
+        }
+
+        // Fallback by Discord
+        if (!application) {
+
+            application =
+                db.prepare(`
+                    SELECT *
+                    FROM applications
+                    WHERE discord_id = ?
+                    ORDER BY id DESC
+                    LIMIT 1
+                `).get(
+                    req.session.discord.id
                 );
         }
 
         if (!application) {
 
-            application =
-                applications.find(
-                    x =>
-                        x.discord_id ===
-                        req.session.discord.id
-                );
-        }
-
-        if (!application) {
             return res.json({
                 application: null,
                 messages: []
@@ -553,47 +976,68 @@ app.get(
         }
 
         const appMessages =
-            messages.filter(
-                x =>
-                    x.application_id ===
-                    application.id
+            db.prepare(`
+                SELECT
+                    id,
+                    subject,
+                    sender_label,
+                    body,
+                    type,
+                    read,
+                    created_at
+                FROM messages
+                WHERE application_id = ?
+                ORDER BY id DESC
+            `).all(
+                application.id
             );
 
         const credentials =
-            application.status === "APPROVED"
-                ? users.find(
-                    x =>
-                        x.application_id ===
-                        application.id
-                )
-                : null;
+            db.prepare(`
+                SELECT
+                    username,
+                    rank,
+                    unit
+                FROM users
+                WHERE application_id = ?
+                LIMIT 1
+            `).get(
+                application.id
+            );
 
         res.json({
+
             application: {
-                id: application.id,
-                name: application.name,
-                age: application.age,
-                unit: application.unit,
-                experience: application.experience,
-                why: application.why,
-                status: application.status,
-                created_at: application.created_at
+                id:
+                    application.id,
+
+                name:
+                    application.name,
+
+                age:
+                    application.age,
+
+                unit:
+                    application.unit,
+
+                experience:
+                    application.experience,
+
+                why:
+                    application.why,
+
+                status:
+                    application.status,
+
+                created_at:
+                    application.created_at
             },
 
-            messages: appMessages,
+            messages:
+                appMessages,
 
-            credentials: credentials
-                ? {
-                    username:
-                        credentials.username,
-
-                    rank:
-                        credentials.rank,
-
-                    unit:
-                        credentials.unit
-                }
-                : null
+            credentials:
+                credentials || null
         });
     }
 );
@@ -608,36 +1052,42 @@ app.get(
     requireLogin,
     (req, res) => {
 
-        const user =
-            users.find(
-                x =>
-                    x.id ===
-                    req.session.user.id
+        const messages =
+            db.prepare(`
+                SELECT
+                    id,
+                    subject,
+                    sender_label,
+                    body,
+                    type,
+                    read,
+                    created_at
+                FROM messages
+                WHERE user_id = ?
+                ORDER BY id DESC
+            `).all(
+                req.user.id
             );
 
-        if (!user) {
-            return res.status(401).json({
-                error: "LOGIN_REQUIRED"
-            });
-        }
-
-        const userMessages =
-            messages.filter(
-                x =>
-                    x.user_id === user.id
-            );
+        const reports =
+            db.prepare(`
+                SELECT
+                    id,
+                    title,
+                    classification,
+                    created_at
+                FROM reports
+                ORDER BY id DESC
+            `).all();
 
         res.json({
-            user: {
-                username: user.username,
-                rank: user.rank,
-                unit: user.unit,
-                clearance: user.clearance
-            },
 
-            messages: userMessages,
+            user:
+                safeUser(req.user),
 
-            reports: reports
+            messages,
+
+            reports
         });
     }
 );
@@ -652,17 +1102,19 @@ app.get(
     requireLogin,
     (req, res) => {
 
-        res.json(
-            users.map(x => ({
-                username: x.username,
-                in_game_name:
-                    x.in_game_name,
-                rank: x.rank,
-                unit: x.unit,
-                clearance:
-                    x.clearance
-            }))
-        );
+        const users =
+            db.prepare(`
+                SELECT
+                    username,
+                    in_game_name,
+                    rank,
+                    unit,
+                    clearance
+                FROM users
+                ORDER BY id ASC
+            `).all();
+
+        res.json(users);
     }
 );
 
@@ -676,19 +1128,22 @@ app.get(
     requireAdmin,
     (req, res) => {
 
-        res.json(
-            applications.map(x => ({
-                id: x.id,
-                name: x.name,
-                age: x.age,
-                unit: x.unit,
-                experience: x.experience,
-                why: x.why,
-                status: x.status,
-                created_at:
-                    x.created_at
-            }))
-        );
+        const applications =
+            db.prepare(`
+                SELECT
+                    id,
+                    name,
+                    age,
+                    unit,
+                    experience,
+                    why,
+                    status,
+                    created_at
+                FROM applications
+                ORDER BY id DESC
+            `).all();
+
+        res.json(applications);
     }
 );
 
@@ -702,27 +1157,20 @@ app.get(
     requireAdmin,
     (req, res) => {
 
-        res.json(
-            users.map(x => ({
-                username:
-                    x.username,
+        const users =
+            db.prepare(`
+                SELECT
+                    username,
+                    in_game_name,
+                    rank,
+                    unit,
+                    clearance,
+                    created_at
+                FROM users
+                ORDER BY id ASC
+            `).all();
 
-                in_game_name:
-                    x.in_game_name,
-
-                rank:
-                    x.rank,
-
-                unit:
-                    x.unit,
-
-                clearance:
-                    x.clearance,
-
-                created_at:
-                    x.created_at
-            }))
-        );
+        res.json(users);
     }
 );
 
@@ -740,13 +1188,17 @@ app.post(
             Number(req.params.id);
 
         const application =
-            applications.find(
-                x => x.id === id
-            );
+            db.prepare(`
+                SELECT *
+                FROM applications
+                WHERE id = ?
+                LIMIT 1
+            `).get(id);
 
         if (!application) {
             return res.status(404).json({
-                error: "APPLICATION_NOT_FOUND"
+                error:
+                    "APPLICATION_NOT_FOUND"
             });
         }
 
@@ -755,99 +1207,132 @@ app.post(
             "PENDING"
         ) {
             return res.status(400).json({
-                error: "ALREADY_PROCESSED"
+                error:
+                    "ALREADY_PROCESSED"
             });
         }
 
+        // Generate permanent CIA username
         const username =
             "agent_" +
             String(application.id)
                 .padStart(3, "0");
 
-        let password =
-            crypto.randomBytes(5)
+        // Generate temporary password
+        const password =
+            crypto
+                .randomBytes(6)
                 .toString("hex");
 
-        const user = {
-            id: nextUserId++,
+        const createUser =
+            db.prepare(`
+                INSERT INTO users (
+                    username,
+                    password,
+                    rank,
+                    unit,
+                    clearance,
+                    in_game_name,
+                    discord_id,
+                    application_id,
+                    created_at
+                )
+                VALUES (?, ?, 'AGENT', ?, 'RESTRICTED', ?, ?, ?, ?)
+            `);
 
-            username,
+        const updateApplication =
+            db.prepare(`
+                UPDATE applications
+                SET status = 'APPROVED'
+                WHERE id = ?
+            `);
 
-            password:
-                hashPassword(password),
+        const addMessage =
+            db.prepare(`
+                INSERT INTO messages (
+                    user_id,
+                    application_id,
+                    subject,
+                    sender_label,
+                    body,
+                    type,
+                    read,
+                    created_at
+                )
+                VALUES (?, ?, ?, ?, ?, 'MESSAGE', 0, ?)
+            `);
 
-            rank: "AGENT",
+        const transaction =
+            db.transaction(() => {
 
-            unit:
-                application.unit,
+                const userResult =
+                    createUser.run(
 
-            clearance:
-                "RESTRICTED",
+                        username,
 
-            in_game_name:
-                application.name,
+                        hashPassword(
+                            password
+                        ),
 
-            discord_id:
-                application.discord_id,
+                        application.unit,
 
-            application_id:
-                application.id,
+                        application.name,
 
-            created_at:
-                currentTime()
-        };
+                        application.discord_id,
 
-        users.push(user);
+                        application.id,
 
-        application.status =
-            "APPROVED";
+                        now()
+                    );
 
-        messages.push({
-            id: nextMessageId++,
+                updateApplication.run(
+                    application.id
+                );
 
-            application_id:
-                application.id,
+                addMessage.run(
 
-            user_id:
-                user.id,
+                    userResult.lastInsertRowid,
 
-            subject:
-                "CIA APPLICATION APPROVED",
+                    application.id,
 
-            sender_label:
-                "COMMAND OF CIA",
+                    "CIA APPLICATION APPROVED",
 
-            body:
-                "Your CIA application has been approved.\n\nUsername: " +
-                username +
-                "\nTemporary Password: " +
-                password,
+                    "COMMAND OF CIA",
 
-            type: "MESSAGE",
+                    "Your CIA application has been approved.\n\nUsername: " +
+                        username +
+                        "\nTemporary Password: " +
+                        password,
 
-            read: false,
+                    now()
+                );
 
-            created_at:
-                currentTime()
-        });
+                return userResult.lastInsertRowid;
+            });
 
-        audit.push({
-            created_at:
-                currentTime(),
+        try {
 
-            actor_label:
-                req.session.user.id,
+            transaction();
 
-            action:
-                "APPLICATION_APPROVED",
+        } catch (error) {
 
-            ip:
-                req.ip,
+            console.error(
+                "APPROVAL ERROR:",
+                error
+            );
 
-            details:
-                "Application #" +
-                application.id
-        });
+            return res.status(500).json({
+                error:
+                    "COULD_NOT_APPROVE"
+            });
+        }
+
+        audit(
+            req.user.username,
+            "APPLICATION_APPROVED",
+            req.ip,
+            `Application #${id}`
+        );
 
         res.json({
             success: true,
@@ -871,42 +1356,56 @@ app.post(
             Number(req.params.id);
 
         const application =
-            applications.find(
-                x => x.id === id
-            );
+            db.prepare(`
+                SELECT *
+                FROM applications
+                WHERE id = ?
+            `).get(id);
 
         if (!application) {
+
             return res.status(404).json({
-                error: "APPLICATION_NOT_FOUND"
+                error:
+                    "APPLICATION_NOT_FOUND"
             });
         }
 
-        application.status =
-            "REJECTED";
+        db.prepare(`
+            UPDATE applications
+            SET status = 'REJECTED'
+            WHERE id = ?
+        `).run(id);
 
-        messages.push({
-            id: nextMessageId++,
+        db.prepare(`
+            INSERT INTO messages (
+                application_id,
+                subject,
+                sender_label,
+                body,
+                type,
+                read,
+                created_at
+            )
+            VALUES (?, ?, ?, ?, 'MESSAGE', 0, ?)
+        `).run(
 
-            application_id:
-                application.id,
+            id,
 
-            subject:
-                "CIA APPLICATION UPDATE",
+            "CIA APPLICATION UPDATE",
 
-            sender_label:
-                "COMMAND OF CIA",
+            "COMMAND OF CIA",
 
-            body:
-                "Your CIA application has been rejected.",
+            "Your CIA application has been rejected.",
 
-            type:
-                "MESSAGE",
+            now()
+        );
 
-            read: false,
-
-            created_at:
-                currentTime()
-        });
+        audit(
+            req.user.username,
+            "APPLICATION_REJECTED",
+            req.ip,
+            `Application #${id}`
+        );
 
         res.json({
             success: true
@@ -941,7 +1440,8 @@ app.post(
 
         const type =
             String(
-                req.body.type || "MESSAGE"
+                req.body.type ||
+                "MESSAGE"
             );
 
         if (
@@ -950,92 +1450,125 @@ app.post(
             !body
         ) {
             return res.status(400).json({
-                error: "MISSING_FIELDS"
+                error:
+                    "MISSING_FIELDS"
             });
         }
 
         // Application target
-        if (target.startsWith("app:")) {
+        if (
+            target.toLowerCase()
+                .startsWith("app:")
+        ) {
 
             const id =
                 Number(
-                    target.replace(
-                        "app:",
-                        ""
-                    )
+                    target.substring(4)
                 );
 
             const application =
-                applications.find(
-                    x => x.id === id
-                );
+                db.prepare(`
+                    SELECT *
+                    FROM applications
+                    WHERE id = ?
+                `).get(id);
 
             if (!application) {
+
                 return res.status(404).json({
                     error:
                         "APPLICATION_NOT_FOUND"
                 });
             }
 
-            messages.push({
-                id: nextMessageId++,
+            db.prepare(`
+                INSERT INTO messages (
+                    application_id,
+                    subject,
+                    sender_label,
+                    body,
+                    type,
+                    read,
+                    created_at
+                )
+                VALUES (?, ?, ?, ?, ?, 0, ?)
+            `).run(
 
-                application_id:
-                    application.id,
+                id,
 
                 subject,
 
-                sender_label:
-                    "COMMAND OF CIA",
+                req.user.username,
 
                 body,
 
                 type,
 
-                read: false,
+                now()
+            );
 
-                created_at:
-                    currentTime()
-            });
+            audit(
+                req.user.username,
+                "SEND_APPLICATION_MESSAGE",
+                req.ip,
+                `Application #${id}`
+            );
 
             return res.json({
                 success: true
             });
         }
 
+        // User target
         const user =
-            users.find(
-                x =>
-                    x.username.toLowerCase() ===
-                    target.toLowerCase()
-            );
+            db.prepare(`
+                SELECT *
+                FROM users
+                WHERE LOWER(username)
+                    = LOWER(?)
+                LIMIT 1
+            `).get(target);
 
         if (!user) {
+
             return res.status(404).json({
-                error: "USER_NOT_FOUND"
+                error:
+                    "USER_NOT_FOUND"
             });
         }
 
-        messages.push({
-            id: nextMessageId++,
+        db.prepare(`
+            INSERT INTO messages (
+                user_id,
+                subject,
+                sender_label,
+                body,
+                type,
+                read,
+                created_at
+            )
+            VALUES (?, ?, ?, ?, ?, 0, ?)
+        `).run(
 
-            user_id:
-                user.id,
+            user.id,
 
             subject,
 
-            sender_label:
-                "COMMAND OF CIA",
+            req.user.username,
 
             body,
 
             type,
 
-            read: false,
+            now()
+        );
 
-            created_at:
-                currentTime()
-        });
+        audit(
+            req.user.username,
+            "SEND_MESSAGE",
+            req.ip,
+            `Target: ${user.username}`
+        );
 
         res.json({
             success: true
@@ -1065,8 +1598,9 @@ app.post(
 
         const rank =
             String(
-                req.body.rank || "AGENT"
-            );
+                req.body.rank ||
+                "AGENT"
+            ).trim();
 
         const unit =
             String(
@@ -1078,11 +1612,12 @@ app.post(
             String(
                 req.body.clearance ||
                 "RESTRICTED"
-            );
+            ).trim();
 
         const inGameName =
             String(
-                req.body.in_game_name || ""
+                req.body.in_game_name ||
+                ""
             ).trim();
 
         if (
@@ -1091,30 +1626,45 @@ app.post(
             !inGameName
         ) {
             return res.status(400).json({
-                error: "MISSING_FIELDS"
+                error:
+                    "MISSING_FIELDS"
             });
         }
 
-        const exists =
-            users.some(
-                x =>
-                    x.username.toLowerCase() ===
-                    username.toLowerCase()
-            );
+        const existing =
+            db.prepare(`
+                SELECT id
+                FROM users
+                WHERE LOWER(username)
+                    = LOWER(?)
+            `).get(username);
 
-        if (exists) {
+        if (existing) {
+
             return res.status(409).json({
-                error: "USERNAME_EXISTS"
+                error:
+                    "USERNAME_EXISTS"
             });
         }
 
-        const user = {
-            id: nextUserId++,
+        db.prepare(`
+            INSERT INTO users (
+                username,
+                password,
+                rank,
+                unit,
+                clearance,
+                in_game_name,
+                discord_id,
+                application_id,
+                created_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?, NULL, NULL, ?)
+        `).run(
 
             username,
 
-            password:
-                hashPassword(password),
+            hashPassword(password),
 
             rank,
 
@@ -1122,37 +1672,17 @@ app.post(
 
             clearance,
 
-            in_game_name:
-                inGameName,
+            inGameName,
 
-            discord_id:
-                null,
+            now()
+        );
 
-            application_id:
-                null,
-
-            created_at:
-                currentTime()
-        };
-
-        users.push(user);
-
-        audit.push({
-            created_at:
-                currentTime(),
-
-            actor_label:
-                "COMMAND OF CIA",
-
-            action:
-                "CREATE_USER",
-
-            ip:
-                req.ip,
-
-            details:
-                username
-        });
+        audit(
+            req.user.username,
+            "CREATE_USER",
+            req.ip,
+            `Created: ${username}`
+        );
 
         res.json({
             success: true
@@ -1161,42 +1691,87 @@ app.post(
 );
 
 // =====================================================
-// REPORTS
+// MULTER / PDF STORAGE
 // =====================================================
 
-app.get(
-    "/api/reports/:id",
-    requireDiscord,
-    requireLogin,
-    (req, res) => {
+const storage =
+    multer.diskStorage({
 
-        const report =
-            reports.find(
-                x =>
-                    x.id ===
-                    Number(req.params.id)
-            );
+        destination:
+            function (
+                req,
+                file,
+                cb
+            ) {
+                cb(
+                    null,
+                    REPORTS_DIR
+                );
+            },
 
-        if (!report) {
-            return res.status(404).send(
-                "Report not found."
-            );
-        }
+        filename:
+            function (
+                req,
+                file,
+                cb
+            ) {
 
-        res.status(501).send(
-            "PDF storage is not configured in this server build."
-        );
-    }
-);
+                const filename =
+                    Date.now() +
+                    "-" +
+                    crypto
+                        .randomBytes(8)
+                        .toString("hex") +
+                    ".pdf";
+
+                cb(
+                    null,
+                    filename
+                );
+            }
+    });
+
+const upload =
+    multer({
+
+        storage,
+
+        limits: {
+            fileSize:
+                20 * 1024 * 1024
+        },
+
+        fileFilter:
+            function (
+                req,
+                file,
+                cb
+            ) {
+
+                if (
+                    file.mimetype !==
+                    "application/pdf"
+                ) {
+                    return cb(
+                        new Error(
+                            "PDF_ONLY"
+                        )
+                    );
+                }
+
+                cb(null, true);
+            }
+    });
 
 // =====================================================
-// REGISTER REPORT
+// REGISTER PDF REPORT
 // =====================================================
 
 app.post(
     "/api/admin/reports",
     requireDiscord,
     requireAdmin,
+    upload.single("pdf"),
     (req, res) => {
 
         const title =
@@ -1208,31 +1783,122 @@ app.post(
             String(
                 req.body.classification ||
                 "CONFIDENTIAL"
-            );
+            ).trim();
 
-        if (!title) {
+        if (
+            !title ||
+            !req.file
+        ) {
+
+            if (req.file) {
+                fs.unlink(
+                    req.file.path,
+                    () => {}
+                );
+            }
+
             return res.status(400).json({
-                error: "MISSING_TITLE"
+                error:
+                    "MISSING_REPORT"
             });
         }
 
-        const report = {
-            id: nextReportId++,
+        const result =
+            db.prepare(`
+                INSERT INTO reports (
+                    title,
+                    classification,
+                    filename,
+                    original_name,
+                    created_at
+                )
+                VALUES (?, ?, ?, ?, ?)
+            `).run(
 
-            title,
+                title,
 
-            classification,
+                classification,
 
-            created_at:
-                currentTime()
-        };
+                req.file.filename,
 
-        reports.push(report);
+                req.file.originalname,
+
+                now()
+            );
+
+        audit(
+            req.user.username,
+            "REGISTER_REPORT",
+            req.ip,
+            `Report #${result.lastInsertRowid}`
+        );
 
         res.json({
             success: true,
-            report
+            id:
+                result.lastInsertRowid
         });
+    }
+);
+
+// =====================================================
+// VIEW PDF
+// =====================================================
+
+app.get(
+    "/api/reports/:id",
+    requireDiscord,
+    requireLogin,
+    (req, res) => {
+
+        const report =
+            db.prepare(`
+                SELECT *
+                FROM reports
+                WHERE id = ?
+            `).get(
+                Number(req.params.id)
+            );
+
+        if (!report) {
+            return res.status(404).send(
+                "Report not found."
+            );
+        }
+
+        if (!report.filename) {
+            return res.status(404).send(
+                "PDF file not found."
+            );
+        }
+
+        const filePath =
+            path.join(
+                REPORTS_DIR,
+                report.filename
+            );
+
+        if (
+            !fs.existsSync(filePath)
+        ) {
+            return res.status(404).send(
+                "PDF file is missing from storage."
+            );
+        }
+
+        res.setHeader(
+            "Content-Type",
+            "application/pdf"
+        );
+
+        res.setHeader(
+            "Content-Disposition",
+            "inline; filename=\"report.pdf\""
+        );
+
+        res.sendFile(
+            path.resolve(filePath)
+        );
     }
 );
 
@@ -1246,9 +1912,20 @@ app.get(
     requireCommand,
     (req, res) => {
 
-        res.json(
-            audit.slice(-200).reverse()
-        );
+        const records =
+            db.prepare(`
+                SELECT
+                    created_at,
+                    actor_label,
+                    action,
+                    ip,
+                    details
+                FROM audit
+                ORDER BY id DESC
+                LIMIT 500
+            `).all();
+
+        res.json(records);
     }
 );
 
@@ -1256,25 +1933,29 @@ app.get(
 // HOME
 // =====================================================
 
-app.get("/", (req, res) => {
+app.get(
+    "/",
+    (req, res) => {
 
-    if (!req.session.discord) {
-        return res.redirect(
-            "/auth/discord"
+        // Discord must be connected first.
+        if (!req.session.discord) {
+            return res.redirect(
+                "/auth/discord"
+            );
+        }
+
+        res.sendFile(
+            path.join(
+                __dirname,
+                "public",
+                "index.html"
+            )
         );
     }
-
-    res.sendFile(
-        path.join(
-            __dirname,
-            "public",
-            "index.html"
-        )
-    );
-});
+);
 
 // =====================================================
-// STATIC FILES
+// STATIC
 // =====================================================
 
 app.use(
@@ -1294,10 +1975,56 @@ app.get(
     "/discord/logout",
     (req, res) => {
 
-        req.session.destroy(() => {
-            res.redirect(
-                "/auth/discord"
-            );
+        req.session.destroy(
+            () => {
+                res.redirect(
+                    "/auth/discord"
+                );
+            }
+        );
+    }
+);
+
+// =====================================================
+// ERROR HANDLER
+// =====================================================
+
+app.use(
+    (
+        error,
+        req,
+        res,
+        next
+    ) => {
+
+        console.error(
+            "SERVER ERROR:",
+            error
+        );
+
+        if (
+            error.message ===
+            "PDF_ONLY"
+        ) {
+            return res.status(400).json({
+                error:
+                    "PDF_ONLY"
+            });
+        }
+
+        if (
+            error.code ===
+            "LIMIT_FILE_SIZE"
+        ) {
+            return res.status(400).json({
+                error:
+                    "PDF_TOO_LARGE"
+            });
+        }
+
+        res.status(500).json({
+            error:
+                "INTERNAL_SERVER_ERROR"
         });
     }
 );
@@ -1310,8 +2037,8 @@ app.use(
     (req, res) => {
 
         res.status(404).json({
-            error: "NOT_FOUND",
-            path: req.path
+            error:
+                "NOT_FOUND"
         });
     }
 );
@@ -1325,8 +2052,9 @@ app.listen(
     "0.0.0.0",
     () => {
 
+        console.log("");
         console.log(
-            "================================="
+            "=========================================="
         );
 
         console.log(
@@ -1334,19 +2062,28 @@ app.listen(
         );
 
         console.log(
-            `Discord Redirect: ${REDIRECT_URI}`
+            `SQLite database: ${DB_PATH}`
         );
 
         console.log(
-            "Discord authentication: ENABLED"
+            `PDF storage: ${REPORTS_DIR}`
         );
 
         console.log(
-            "CIA auto-account creation: DISABLED"
+            "Discord OAuth: ENABLED"
         );
 
         console.log(
-            "================================="
+            "Automatic CIA account creation: DISABLED"
         );
+
+        console.log(
+            "Persistent storage: ENABLED"
+        );
+
+        console.log(
+            "=========================================="
+        );
+        console.log("");
     }
 );
