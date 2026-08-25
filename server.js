@@ -3,29 +3,38 @@ const session = require("express-session");
 const path = require("path");
 
 const app = express();
-
 const PORT = process.env.PORT || 3000;
 
-const {
-    DISCORD_CLIENT_ID,
-    DISCORD_CLIENT_SECRET,
-    DISCORD_REDIRECT_URI,
-    SESSION_SECRET
-} = process.env;
+// ===============================
+// Discord configuration
+// ===============================
 
-if (
-    !DISCORD_CLIENT_ID ||
-    !DISCORD_CLIENT_SECRET ||
-    !DISCORD_REDIRECT_URI ||
-    !SESSION_SECRET
-) {
-    console.error("Missing required environment variables.");
+const CLIENT_ID = process.env.DISCORD_CLIENT_ID;
+const CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET;
+
+const REDIRECT_URI =
+    process.env.DISCORD_REDIRECT_URI ||
+    "https://d-1-c9e5.onrender.com/auth/discord/callback";
+
+const SESSION_SECRET =
+    process.env.SESSION_SECRET ||
+    "change-this-secret";
+
+if (!CLIENT_ID || !CLIENT_SECRET) {
+    console.error(
+        "ERROR: DISCORD_CLIENT_ID or DISCORD_CLIENT_SECRET is missing."
+    );
+
     process.exit(1);
 }
 
 app.set("trust proxy", 1);
 
 app.use(express.json());
+
+// ===============================
+// Session
+// ===============================
 
 app.use(
     session({
@@ -42,48 +51,73 @@ app.use(
     })
 );
 
-// =====================================================
+// ===============================
 // HOME
-// =====================================================
+// ===============================
 
 app.get("/", (req, res) => {
 
-    if (!req.session.discordUser) {
-        return res.redirect("/auth/discord");
+    // Already connected
+    if (req.session.discord) {
+
+        return res.sendFile(
+            path.join(
+                __dirname,
+                "public",
+                "index.html"
+            )
+        );
     }
 
-    return res.sendFile(
-        path.join(
-            __dirname,
-            "public",
-            "index.html"
-        )
+    // Not connected
+    // Send directly to Discord
+    return res.redirect(
+        "/auth/discord"
     );
 });
 
-// =====================================================
-// DISCORD OAUTH
-// =====================================================
+// ===============================
+// Discord OAuth
+// ===============================
 
 app.get("/auth/discord", (req, res) => {
 
-    const params = new URLSearchParams({
-        client_id: DISCORD_CLIENT_ID,
-        response_type: "code",
-        redirect_uri: DISCORD_REDIRECT_URI,
-        scope: "identify"
-    });
+    const params = new URLSearchParams();
+
+    params.set(
+        "client_id",
+        CLIENT_ID
+    );
+
+    params.set(
+        "redirect_uri",
+        REDIRECT_URI
+    );
+
+    params.set(
+        "response_type",
+        "code"
+    );
+
+    params.set(
+        "scope",
+        "identify"
+    );
 
     const url =
         "https://discord.com/oauth2/authorize?" +
         params.toString();
 
+    console.log(
+        "Redirecting to Discord..."
+    );
+
     res.redirect(url);
 });
 
-// =====================================================
-// CALLBACK
-// =====================================================
+// ===============================
+// Discord callback
+// ===============================
 
 app.get(
     "/auth/discord/callback",
@@ -92,14 +126,20 @@ app.get(
         const code = req.query.code;
 
         if (!code) {
+
             return res
                 .status(400)
-                .send("Discord authorization failed.");
+                .send(
+                    "No Discord authorization code."
+                );
         }
 
         try {
 
+            // ===============================
             // Exchange code
+            // ===============================
+
             const tokenResponse =
                 await fetch(
                     "https://discord.com/api/oauth2/token",
@@ -114,30 +154,34 @@ app.get(
                         body:
                             new URLSearchParams({
                                 client_id:
-                                    DISCORD_CLIENT_ID,
+                                    CLIENT_ID,
 
                                 client_secret:
-                                    DISCORD_CLIENT_SECRET,
+                                    CLIENT_SECRET,
 
                                 grant_type:
                                     "authorization_code",
 
-                                code,
+                                code:
+                                    code,
 
                                 redirect_uri:
-                                    DISCORD_REDIRECT_URI
+                                    REDIRECT_URI
                             })
                     }
                 );
 
+            const tokenText =
+                await tokenResponse.text();
+
             if (!tokenResponse.ok) {
 
-                const error =
-                    await tokenResponse.text();
+                console.error(
+                    "DISCORD TOKEN ERROR:"
+                );
 
                 console.error(
-                    "TOKEN ERROR:",
-                    error
+                    tokenText
                 );
 
                 return res
@@ -148,51 +192,57 @@ app.get(
             }
 
             const token =
-                await tokenResponse.json();
+                JSON.parse(tokenText);
 
+            // ===============================
             // Get Discord user
+            // ===============================
+
             const userResponse =
                 await fetch(
                     "https://discord.com/api/users/@me",
                     {
                         headers: {
                             Authorization:
-                                `${token.token_type} ${token.access_token}`
+                                `Bearer ${token.access_token}`
                         }
                     }
                 );
 
+            const userText =
+                await userResponse.text();
+
             if (!userResponse.ok) {
 
-                const error =
-                    await userResponse.text();
+                console.error(
+                    "DISCORD USER ERROR:"
+                );
 
                 console.error(
-                    "USER ERROR:",
-                    error
+                    userText
                 );
 
                 return res
                     .status(500)
                     .send(
-                        "Could not get Discord user."
+                        "Could not retrieve Discord account."
                     );
             }
 
             const discordUser =
-                await userResponse.json();
+                JSON.parse(userText);
 
             console.log(
-                "Discord connected:",
+                "Discord login successful:",
                 discordUser.username,
                 discordUser.id
             );
 
-            // =================================================
-            // Discord فقط — لا إنشاء حساب بالموقع
-            // =================================================
+            // ===============================
+            // ONLY STORE DISCORD SESSION
+            // ===============================
 
-            req.session.discordUser = {
+            req.session.discord = {
                 id:
                     discordUser.id,
 
@@ -206,25 +256,42 @@ app.get(
                     discordUser.avatar || null
             };
 
-            // مهم جدًا
-            req.session.save(
-                (err) => {
+            // ===============================
+            // IMPORTANT
+            // ===============================
+            //
+            // NO DATABASE
+            // NO WEBSITE ACCOUNT
+            // NO PASSWORD
+            // NO USER CREATION
+            //
+            // Just Discord session.
+            //
 
-                    if (err) {
+            req.session.save(
+                (error) => {
+
+                    if (error) {
 
                         console.error(
                             "SESSION SAVE ERROR:",
-                            err
+                            error
                         );
 
                         return res
                             .status(500)
                             .send(
-                                "Could not save login session."
+                                "Could not save Discord session."
                             );
                     }
 
-                    return res.redirect("/");
+                    console.log(
+                        "Session saved successfully."
+                    );
+
+                    return res.redirect(
+                        "/"
+                    );
                 }
             );
 
@@ -238,57 +305,65 @@ app.get(
             return res
                 .status(500)
                 .send(
-                    "Discord OAuth error."
+                    "Discord OAuth failed."
                 );
         }
     }
 );
 
-// =====================================================
-// CHECK DISCORD
-// =====================================================
+// ===============================
+// Check Discord session
+// ===============================
 
-app.get("/api/discord", (req, res) => {
+app.get(
+    "/api/discord",
+    (req, res) => {
 
-    if (!req.session.discordUser) {
+        if (!req.session.discord) {
+
+            return res.json({
+                connected: false
+            });
+        }
 
         return res.json({
-            connected: false
+            connected: true,
+            discord:
+                req.session.discord
         });
     }
+);
 
-    return res.json({
-        connected: true,
-        discord: req.session.discordUser
-    });
-});
+// ===============================
+// Logout
+// ===============================
 
-// =====================================================
-// LOGOUT
-// =====================================================
+app.get(
+    "/logout",
+    (req, res) => {
 
-app.get("/logout", (req, res) => {
+        req.session.destroy(
+            (error) => {
 
-    req.session.destroy(
-        (err) => {
+                if (error) {
+                    console.error(error);
+                }
 
-            if (err) {
-                console.error(err);
+                res.redirect("/");
             }
+        );
+    }
+);
 
-            res.redirect("/");
-        }
-    );
-});
-
-// =====================================================
-// PROTECT WEBSITE
-// =====================================================
+// ===============================
+// Protect website
+// ===============================
 
 app.use(
     (req, res, next) => {
 
-        if (!req.session.discordUser) {
+        if (!req.session.discord) {
+
             return res.redirect(
                 "/auth/discord"
             );
@@ -298,9 +373,9 @@ app.use(
     }
 );
 
-// =====================================================
-// PUBLIC
-// =====================================================
+// ===============================
+// Public website
+// ===============================
 
 app.use(
     express.static(
@@ -311,9 +386,9 @@ app.use(
     )
 );
 
-// =====================================================
+// ===============================
 // 404
-// =====================================================
+// ===============================
 
 app.use(
     (req, res) => {
@@ -324,9 +399,9 @@ app.use(
     }
 );
 
-// =====================================================
-// START
-// =====================================================
+// ===============================
+// Start
+// ===============================
 
 app.listen(
     PORT,
@@ -335,6 +410,10 @@ app.listen(
 
         console.log(
             `CIA RP running on port ${PORT}`
+        );
+
+        console.log(
+            `Redirect URI: ${REDIRECT_URI}`
         );
     }
 );
