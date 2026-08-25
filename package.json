@@ -1,1 +1,20 @@
-{"scripts":{"start":"node server.js"},"dependencies":{"express":"^5.1.0","better-sqlite3":"^12.4.1","bcryptjs":"^3.0.2","express-session":"^1.18.2","multer":"^2.0.2"}}
+{
+  "name": "cia-rp-real-system",
+  "version": "2.0.0",
+  "description": "CIA RP personnel and application system",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "better-sqlite3": "^12.4.1",
+    "cookie-parser": "^1.4.7",
+    "express": "^5.1.0",
+    "express-session": "^1.18.2",
+    "multer": "^2.0.2"
+  }
+}
