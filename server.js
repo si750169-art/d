@@ -9,10 +9,6 @@ const crypto = require("crypto");
 
 const app = express();
 
-// =====================================================
-// CONFIG
-// =====================================================
-
 const PORT = Number(process.env.PORT || 3000);
 const HOST = process.env.HOST || "0.0.0.0";
 
@@ -45,11 +41,11 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE TABLE IF NOT EXISTS applications (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
+    discord_id TEXT,
     age INTEGER NOT NULL,
     unit TEXT NOT NULL,
     experience TEXT NOT NULL,
     why TEXT NOT NULL,
-    discord_id TEXT,
     status TEXT DEFAULT 'PENDING',
     dashboard_token TEXT UNIQUE NOT NULL,
     linked_user INTEGER,
@@ -95,31 +91,28 @@ CREATE TABLE IF NOT EXISTS audit (
 // DATABASE MIGRATION
 // =====================================================
 
-function ensureColumn(table, column, definition) {
-    const columns = db
-        .prepare(`PRAGMA table_info(${table})`)
-        .all();
+try {
+    const columns = db.prepare(
+        "PRAGMA table_info(applications)"
+    ).all();
 
-    const exists = columns.some(
-        c => c.name === column
+    const hasDiscordId = columns.some(
+        column => column.name === "discord_id"
     );
 
-    if (!exists) {
+    if (!hasDiscordId) {
         db.exec(
-            `ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`
+            "ALTER TABLE applications ADD COLUMN discord_id TEXT"
         );
 
-        console.log(
-            `DATABASE MIGRATION: added ${table}.${column}`
-        );
+        console.log("DATABASE: discord_id column added.");
     }
+} catch (error) {
+    console.error(
+        "DATABASE MIGRATION ERROR:",
+        error
+    );
 }
-
-ensureColumn(
-    "applications",
-    "discord_id",
-    "TEXT"
-);
 
 // =====================================================
 // UPLOADS
@@ -128,9 +121,7 @@ ensureColumn(
 const uploads = path.join(__dirname, "uploads");
 
 if (!fs.existsSync(uploads)) {
-    fs.mkdirSync(uploads, {
-        recursive: true
-    });
+    fs.mkdirSync(uploads, { recursive: true });
 }
 
 // =====================================================
@@ -148,15 +139,9 @@ app.use(
 
         cookie: {
             httpOnly: true,
-            secure:
-                process.env.NODE_ENV === "production",
+            secure: process.env.NODE_ENV === "production",
             sameSite: "lax",
-            maxAge:
-                1000 *
-                60 *
-                60 *
-                24 *
-                30
+            maxAge: 1000 * 60 * 60 * 24 * 30
         }
     })
 );
@@ -170,9 +155,7 @@ function getClientIP(req) {
         req.headers["cf-connecting-ip"];
 
     if (cloudflareIP) {
-        return String(cloudflareIP)
-            .trim()
-            .replace("::ffff:", "");
+        return String(cloudflareIP).trim();
     }
 
     const forwarded =
@@ -186,8 +169,7 @@ function getClientIP(req) {
     }
 
     return String(
-        req.socket.remoteAddress ||
-        "unknown"
+        req.socket.remoteAddress || "unknown"
     )
         .trim()
         .replace("::ffff:", "");
@@ -203,22 +185,17 @@ app.use((req, res, next) => {
 // =====================================================
 
 app.use((req, res, next) => {
-    const raw =
-        req.headers.cookie || "";
+    const raw = req.headers.cookie || "";
 
     req.cookies = {};
 
     raw.split(";").forEach(item => {
-        const index =
-            item.indexOf("=");
+        const index = item.indexOf("=");
 
         if (index <= 0) return;
 
-        const key =
-            item.slice(0, index).trim();
-
-        const value =
-            item.slice(index + 1).trim();
+        const key = item.slice(0, index).trim();
+        const value = item.slice(index + 1).trim();
 
         try {
             req.cookies[key] =
@@ -251,11 +228,6 @@ const COMMAND = [
     "COMMAND OF CIA"
 ];
 
-// ALPHA IS NOT ADMIN.
-// ALPHA IS A PRIVATE LOG ROLE.
-
-const ALPHA_USERNAME = "log";
-
 const clearanceRank = {
     RESTRICTED: 1,
     CONFIDENTIAL: 2,
@@ -272,25 +244,18 @@ const upload = multer({
     dest: uploads,
 
     limits: {
-        fileSize:
-            20 * 1024 * 1024
+        fileSize: 20 * 1024 * 1024
     },
 
-    fileFilter:
-        (req, file, cb) => {
-            if (
-                file.mimetype !==
-                "application/pdf"
-            ) {
-                return cb(
-                    new Error(
-                        "ONLY_PDF_ALLOWED"
-                    )
-                );
-            }
-
-            cb(null, true);
+    fileFilter: (req, file, cb) => {
+        if (file.mimetype !== "application/pdf") {
+            return cb(
+                new Error("ONLY_PDF_ALLOWED")
+            );
         }
+
+        cb(null, true);
+    }
 });
 
 // =====================================================
@@ -298,49 +263,24 @@ const upload = multer({
 // =====================================================
 
 function ip(req) {
-    return (
-        req.visitorIP ||
-        getClientIP(req)
-    );
+    return req.visitorIP || getClientIP(req);
 }
 
 function safeUser(user) {
     if (!user) return null;
 
-    const copy = {
-        ...user
-    };
+    const copy = { ...user };
 
     delete copy.password;
 
     return copy;
 }
 
-function isAlpha(user) {
-    return !!(
-        user &&
-        user.username === ALPHA_USERNAME &&
-        user.rank === "ALPHA"
-    );
-}
-
-function isCommand(user) {
-    return !!(
-        user &&
-        user.username === "code_alpha" &&
-        user.rank === "COMMAND OF CIA"
-    );
-}
-
 function cleanUsername(name, id) {
-    const base =
-        String(name)
-            .toLowerCase()
-            .replace(
-                /[^a-z0-9_-]/g,
-                ""
-            )
-            .slice(0, 18);
+    const base = String(name)
+        .toLowerCase()
+        .replace(/[^a-z0-9_-]/g, "")
+        .slice(0, 18);
 
     return (
         (base || "agent") +
@@ -351,24 +291,15 @@ function cleanUsername(name, id) {
 
 function randomPassword() {
     return (
-        crypto
-            .randomBytes(6)
-            .toString("base64url") +
+        crypto.randomBytes(6).toString("base64url") +
         "!9"
     );
 }
 
-function canView(
-    user,
-    classification
-) {
+function canView(user, classification) {
     return (
-        (clearanceRank[
-            user.clearance
-        ] || 0) >=
-        (clearanceRank[
-            classification
-        ] || 99)
+        (clearanceRank[user.clearance] || 0) >=
+        (clearanceRank[classification] || 99)
     );
 }
 
@@ -376,13 +307,8 @@ function canView(
 // AUDIT
 // =====================================================
 
-function audit(
-    req,
-    action,
-    details = ""
-) {
-    const user =
-        req.session?.user;
+function audit(req, action, details = "") {
+    const user = req.session?.user;
 
     try {
         db.prepare(`
@@ -413,21 +339,17 @@ function audit(
 }
 
 // =====================================================
-// CREATE FIXED ACCOUNTS
+// COMMAND ACCOUNT
 // =====================================================
 
-function ensureSystemAccounts() {
-
-    // ================================================
-    // COMMAND ACCOUNT
-    // ================================================
-
-    const command =
-        db.prepare(
+function ensureCommand() {
+    const existing = db
+        .prepare(
             "SELECT * FROM users WHERE username = ?"
-        ).get("code_alpha");
+        )
+        .get("code_alpha");
 
-    if (!command) {
+    if (!existing) {
         const passwordHash =
             bcrypt.hashSync(
                 "cia command91",
@@ -455,21 +377,24 @@ function ensureSystemAccounts() {
         );
 
         console.log(
-            "COMMAND ACCOUNT CREATED"
+            "COMMAND ACCOUNT CREATED: code_alpha"
         );
     }
+}
 
-    // ================================================
-    // ALPHA LOG ACCOUNT
-    // ================================================
+// =====================================================
+// LOG ACCOUNT
+// ONLY CREATED BY CODE
+// =====================================================
 
-    const alpha =
-        db.prepare(
+function ensureLogAccount() {
+    const existing = db
+        .prepare(
             "SELECT * FROM users WHERE username = ?"
-        ).get(ALPHA_USERNAME);
+        )
+        .get("log");
 
-    if (!alpha) {
-
+    if (!existing) {
         const passwordHash =
             bcrypt.hashSync(
                 "log_1",
@@ -488,52 +413,28 @@ function ensureSystemAccounts() {
             )
             VALUES (?, ?, ?, ?, ?, ?)
         `).run(
-            ALPHA_USERNAME,
+            "log",
             passwordHash,
             "ALPHA",
             "ALPHA",
             "OMEGA",
-            "ALPHA"
+            "log"
         );
 
         console.log(
-            "ALPHA LOG ACCOUNT CREATED: log"
-        );
-    } else {
-
-        /*
-         * Keep ALPHA protected.
-         * Even if somebody changes the database,
-         * the account is forced back to ALPHA.
-         */
-
-        db.prepare(`
-            UPDATE users
-            SET
-                rank = ?,
-                unit = ?,
-                clearance = ?
-            WHERE username = ?
-        `).run(
-            "ALPHA",
-            "ALPHA",
-            "OMEGA",
-            ALPHA_USERNAME
+            "LOG ACCOUNT CREATED: log"
         );
     }
 }
 
-ensureSystemAccounts();
+ensureCommand();
+ensureLogAccount();
 
 // =====================================================
 // MIDDLEWARE
 // =====================================================
 
-function auth(
-    req,
-    res,
-    next
-) {
+function auth(req, res, next) {
     if (!req.session.user) {
         return res.status(401).json({
             error: "AUTH_REQUIRED"
@@ -543,19 +444,11 @@ function auth(
     next();
 }
 
-function admin(
-    req,
-    res,
-    next
-) {
-
+function admin(req, res, next) {
     if (
         !req.session.user ||
         !ADMIN.includes(
             req.session.user.rank
-        ) ||
-        isAlpha(
-            req.session.user
         )
     ) {
         return res.status(403).json({
@@ -566,15 +459,12 @@ function admin(
     next();
 }
 
-function command(
-    req,
-    res,
-    next
-) {
-
-    if (!isCommand(
-        req.session.user
-    )) {
+function command(req, res, next) {
+    if (
+        !req.session.user ||
+        req.session.user.username !==
+            "code_alpha"
+    ) {
         return res.status(403).json({
             error: "COMMAND_ONLY"
         });
@@ -583,15 +473,12 @@ function command(
     next();
 }
 
-function alpha(
-    req,
-    res,
-    next
-) {
-
-    if (!isAlpha(
-        req.session.user
-    )) {
+function alpha(req, res, next) {
+    if (
+        !req.session.user ||
+        req.session.user.username !== "log" ||
+        req.session.user.rank !== "ALPHA"
+    ) {
         return res.status(403).json({
             error: "ALPHA_ONLY"
         });
@@ -601,87 +488,78 @@ function alpha(
 }
 
 // =====================================================
-// APPLICATION SUBMISSION
+// APPLICATIONS
 // =====================================================
 
 app.post(
     "/api/applications",
     (req, res) => {
-
         try {
-
             const {
                 name,
+                discord_id,
                 age,
                 unit,
                 experience,
-                why,
-                discord_id
+                why
             } = req.body;
 
             if (
                 !name ||
+                !discord_id ||
                 !age ||
                 !unit ||
                 !experience ||
-                !why ||
-                !discord_id
+                !why
             ) {
                 return res.status(400).json({
-                    error:
-                        "MISSING_FIELDS"
+                    error: "MISSING_FIELDS"
                 });
             }
 
-            const discordID =
-                String(discord_id)
-                    .trim();
+            const discordId =
+                String(discord_id).trim();
 
             if (
-                !/^\d{15,25}$/.test(
-                    discordID
+                !/^\d{17,20}$/.test(
+                    discordId
                 )
             ) {
                 return res.status(400).json({
-                    error:
-                        "INVALID_DISCORD_ID"
+                    error: "INVALID_DISCORD_ID"
                 });
             }
 
             const token =
-                crypto
-                    .randomBytes(32)
+                crypto.randomBytes(32)
                     .toString("hex");
 
-            const result =
-                db.prepare(`
-                    INSERT INTO applications
-                    (
-                        name,
-                        age,
-                        unit,
-                        experience,
-                        why,
-                        discord_id,
-                        dashboard_token
-                    )
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
-                `).run(
-                    String(name).trim(),
-                    Number(age),
-                    String(unit),
-                    String(experience)
-                        .trim(),
-                    String(why)
-                        .trim(),
-                    discordID,
-                    token
-                );
+            const result = db.prepare(`
+                INSERT INTO applications
+                (
+                    name,
+                    discord_id,
+                    age,
+                    unit,
+                    experience,
+                    why,
+                    dashboard_token
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            `).run(
+                String(name).trim(),
+                discordId,
+                Number(age),
+                String(unit),
+                String(experience).trim(),
+                String(why).trim(),
+                token
+            );
 
             audit(
                 req,
                 "APPLICATION_SUBMITTED",
-                `application=${result.lastInsertRowid};discord_id=${discordID}`
+                `application=${result.lastInsertRowid};discord_id=${discordId}`
             );
 
             res.cookie(
@@ -701,18 +579,14 @@ app.post(
 
             res.json({
                 ok: true,
-                id:
-                    result.lastInsertRowid,
+                id: result.lastInsertRowid,
                 token
             });
-
         } catch (error) {
-
             console.error(error);
 
             res.status(500).json({
-                error:
-                    "SERVER_ERROR"
+                error: "SERVER_ERROR"
             });
         }
     }
@@ -725,10 +599,8 @@ app.post(
 app.get(
     "/api/application/me",
     (req, res) => {
-
         const token =
-            req.cookies
-                ?.cia_application ||
+            req.cookies?.cia_application ||
             req.headers[
                 "x-application-token"
             ] ||
@@ -745,11 +617,11 @@ app.get(
                 SELECT
                     id,
                     name,
+                    discord_id,
                     age,
                     unit,
                     experience,
                     why,
-                    discord_id,
                     status,
                     linked_user,
                     created_at,
@@ -777,14 +649,11 @@ app.get(
                 FROM messages
                 WHERE recipient_application = ?
                 ORDER BY id DESC
-            `).all(
-                application.id
-            );
+            `).all(application.id);
 
         let credentials = null;
 
         if (application.linked_user) {
-
             credentials =
                 db.prepare(`
                     SELECT
@@ -814,19 +683,15 @@ app.get(
 app.post(
     "/api/login",
     (req, res, next) => {
-
         try {
-
             const username =
                 String(
-                    req.body.username ||
-                    ""
+                    req.body.username || ""
                 ).trim();
 
             const password =
                 String(
-                    req.body.password ||
-                    ""
+                    req.body.password || ""
                 );
 
             const user =
@@ -841,7 +706,6 @@ app.post(
                     user.password
                 )
             ) {
-
                 audit(
                     req,
                     "LOGIN_FAILED",
@@ -856,17 +720,14 @@ app.post(
 
             req.session.regenerate(
                 error => {
-
                     if (error) {
                         return next(error);
                     }
 
-                    req.session.user =
-                        user;
+                    req.session.user = user;
 
                     req.session.save(
                         saveError => {
-
                             if (saveError) {
                                 return next(
                                     saveError
@@ -879,43 +740,14 @@ app.post(
                                 `rank=${user.rank}`
                             );
 
-                            /*
-                             * Important:
-                             * Tell frontend this is
-                             * the special ALPHA account.
-                             */
-
-                            if (
-                                isAlpha(user)
-                            ) {
-
-                                return res.json({
-                                    user:
-                                        safeUser(
-                                            user
-                                        ),
-                                    role:
-                                        "ALPHA",
-                                    logsOnly:
-                                        true
-                                });
-                            }
-
                             res.json({
                                 user:
-                                    safeUser(
-                                        user
-                                    ),
-                                role:
-                                    "PERSONNEL",
-                                logsOnly:
-                                    false
+                                    safeUser(user)
                             });
                         }
                     );
                 }
             );
-
         } catch (error) {
             next(error);
         }
@@ -930,7 +762,6 @@ app.post(
     "/api/logout",
     auth,
     (req, res) => {
-
         audit(
             req,
             "LOGOUT"
@@ -951,67 +782,34 @@ app.post(
 app.get(
     "/api/me",
     (req, res) => {
-
-        if (!req.session.user) {
-            return res.json({
-                user: null
-            });
-        }
-
-        if (
-            isAlpha(
+        res.json({
+            user: safeUser(
                 req.session.user
             )
-        ) {
-
-            return res.json({
-                user:
-                    safeUser(
-                        req.session.user
-                    ),
-                role:
-                    "ALPHA",
-                logsOnly:
-                    true
-            });
-        }
-
-        res.json({
-            user:
-                safeUser(
-                    req.session.user
-                ),
-            role:
-                "PERSONNEL",
-            logsOnly:
-                false
         });
     }
 );
 
 // =====================================================
 // DASHBOARD
-// ALPHA CANNOT USE THIS
 // =====================================================
 
 app.get(
     "/api/dashboard",
     auth,
     (req, res) => {
-
-        if (
-            isAlpha(
-                req.session.user
-            )
-        ) {
-            return res.status(403).json({
-                error:
-                    "ALPHA_LOGS_ONLY"
-            });
-        }
-
         const user =
             req.session.user;
+
+        // LOG ACCOUNT HAS NO NORMAL DASHBOARD
+        if (
+            user.username === "log" &&
+            user.rank === "ALPHA"
+        ) {
+            return res.status(403).json({
+                error: "ALPHA_LOG_ONLY"
+            });
+        }
 
         const messages =
             db.prepare(`
@@ -1038,19 +836,16 @@ app.get(
                     created_at
                 FROM reports
                 ORDER BY id DESC
-            `)
-            .all()
-            .filter(
-                report =>
-                    canView(
-                        user,
-                        report.classification
-                    )
+            `).all()
+            .filter(report =>
+                canView(
+                    user,
+                    report.classification
+                )
             );
 
         res.json({
-            user:
-                safeUser(user),
+            user: safeUser(user),
             messages,
             reports
         });
@@ -1065,15 +860,12 @@ app.post(
     "/api/messages/:id/read",
     auth,
     (req, res) => {
-
         if (
-            isAlpha(
-                req.session.user
-            )
+            req.session.user.username ===
+            "log"
         ) {
             return res.status(403).json({
-                error:
-                    "ALPHA_LOGS_ONLY"
+                error: "ALPHA_LOG_ONLY"
             });
         }
 
@@ -1101,17 +893,16 @@ app.get(
     "/api/admin/applications",
     admin,
     (req, res) => {
-
         const applications =
             db.prepare(`
                 SELECT
                     id,
                     name,
+                    discord_id,
                     age,
                     unit,
                     experience,
                     why,
-                    discord_id,
                     status,
                     linked_user,
                     created_at,
@@ -1120,32 +911,25 @@ app.get(
                 ORDER BY id DESC
             `).all();
 
-        res.json(
-            applications
-        );
+        res.json(applications);
     }
 );
 
 // =====================================================
-// APPROVE APPLICATION
+// APPROVE
 // =====================================================
 
 app.post(
     "/api/admin/application/:id/approve",
     admin,
     (req, res) => {
-
         const application =
             db.prepare(
                 "SELECT * FROM applications WHERE id = ?"
-            ).get(
-                req.params.id
-            );
+            ).get(req.params.id);
 
         if (!application) {
-            return res.sendStatus(
-                404
-            );
+            return res.sendStatus(404);
         }
 
         if (
@@ -1153,8 +937,7 @@ app.post(
             "APPROVED"
         ) {
             return res.status(400).json({
-                error:
-                    "ALREADY_APPROVED"
+                error: "ALREADY_APPROVED"
             });
         }
 
@@ -1169,7 +952,6 @@ app.post(
                 "SELECT id FROM users WHERE username = ?"
             ).get(username)
         ) {
-
             username =
                 cleanUsername(
                     application.name,
@@ -1184,9 +966,7 @@ app.post(
         const password =
             randomPassword();
 
-        const rank =
-            "AGENT";
-
+        const rank = "AGENT";
         const clearance =
             "RESTRICTED";
 
@@ -1219,7 +999,8 @@ app.post(
             SET
                 status = ?,
                 linked_user = ?,
-                updated_at = CURRENT_TIMESTAMP
+                updated_at =
+                    CURRENT_TIMESTAMP
             WHERE id = ?
         `).run(
             "APPROVED",
@@ -1230,11 +1011,9 @@ app.post(
         const body =
 `Your CIA application has been APPROVED.
 
-APPLICATION ID: ${application.id}
-DISCORD ID: ${application.discord_id || "N/A"}
-
 USERNAME: ${username}
 PASSWORD: ${password}
+DISCORD ID: ${application.discord_id}
 UNIT: ${application.unit}
 RANK: ${rank}
 CLEARANCE: ${clearance}
@@ -1266,7 +1045,7 @@ Keep these credentials private.`;
         audit(
             req,
             "APPLICATION_APPROVED",
-            `application=${application.id};discord_id=${application.discord_id || "N/A"};user=${username}`
+            `application=${application.id};user=${username};discord_id=${application.discord_id}`
         );
 
         res.json({
@@ -1278,19 +1057,19 @@ Keep these credentials private.`;
 );
 
 // =====================================================
-// REJECT APPLICATION
+// REJECT
 // =====================================================
 
 app.post(
     "/api/admin/application/:id/reject",
     admin,
     (req, res) => {
-
         db.prepare(`
             UPDATE applications
             SET
                 status = ?,
-                updated_at = CURRENT_TIMESTAMP
+                updated_at =
+                    CURRENT_TIMESTAMP
             WHERE id = ?
         `).run(
             "REJECTED",
@@ -1317,7 +1096,6 @@ app.get(
     "/api/admin/users",
     admin,
     (req, res) => {
-
         const users =
             db.prepare(`
                 SELECT
@@ -1329,6 +1107,7 @@ app.get(
                     clearance,
                     created_at
                 FROM users
+                WHERE username != 'log'
                 ORDER BY id DESC
             `).all();
 
@@ -1338,14 +1117,12 @@ app.get(
 
 // =====================================================
 // CREATE USER
-// ONLY COMMAND
 // =====================================================
 
 app.post(
     "/api/admin/users",
     command,
     (req, res) => {
-
         const {
             username,
             password,
@@ -1354,42 +1131,30 @@ app.post(
             clearance
         } = req.body;
 
-        /*
-         * ALPHA cannot be created through
-         * the website.
-         *
-         * It exists only because it is
-         * hard-coded above.
-         */
-
-        if (
-            rank === "ALPHA"
-        ) {
-            return res.status(403).json({
-                error:
-                    "ALPHA_MUST_BE_CREATED_IN_CODE"
-            });
-        }
-
         if (
             !username ||
             !password ||
             !RANKS.includes(rank) ||
             !unit ||
-            !Object.prototype
-                .hasOwnProperty.call(
-                    clearanceRank,
-                    clearance
-                )
+            !Object.prototype.hasOwnProperty.call(
+                clearanceRank,
+                clearance
+            )
         ) {
             return res.status(400).json({
+                error: "INVALID_DATA"
+            });
+        }
+
+        // ALPHA CANNOT BE CREATED FROM UI
+        if (rank === "ALPHA") {
+            return res.status(403).json({
                 error:
-                    "INVALID_DATA"
+                    "ALPHA_CAN_ONLY_BE_ASSIGNED_IN_CODE"
             });
         }
 
         try {
-
             const result =
                 db.prepare(`
                     INSERT INTO users
@@ -1411,8 +1176,7 @@ app.post(
                     rank,
                     unit,
                     clearance,
-                    req.body
-                        .in_game_name ||
+                    req.body.in_game_name ||
                         username
                 );
 
@@ -1424,12 +1188,9 @@ app.post(
 
             res.json({
                 ok: true,
-                id:
-                    result.lastInsertRowid
+                id: result.lastInsertRowid
             });
-
         } catch {
-
             res.status(400).json({
                 error:
                     "USERNAME_EXISTS"
@@ -1446,7 +1207,6 @@ app.post(
     "/api/admin/message",
     admin,
     (req, res) => {
-
         const {
             target,
             subject,
@@ -1460,21 +1220,18 @@ app.post(
             !body
         ) {
             return res.status(400).json({
-                error:
-                    "MISSING_FIELDS"
+                error: "MISSING_FIELDS"
             });
         }
 
         if (
-            String(target)
-                .startsWith("app:")
+            String(target).startsWith(
+                "app:"
+            )
         ) {
-
-            const id =
-                Number(
-                    String(target)
-                        .slice(4)
-                );
+            const id = Number(
+                String(target).slice(4)
+            );
 
             const application =
                 db.prepare(
@@ -1572,7 +1329,6 @@ app.post(
     admin,
     upload.single("pdf"),
     (req, res) => {
-
         if (
             !req.body.title ||
             !req.file
@@ -1608,8 +1364,7 @@ app.post(
             `).run(
                 req.body.title,
                 req.session.user.id,
-                req.body
-                    .classification ||
+                req.body.classification ||
                     "CONFIDENTIAL",
                 finalPath
             );
@@ -1622,8 +1377,7 @@ app.post(
 
         res.json({
             ok: true,
-            id:
-                result.lastInsertRowid
+            id: result.lastInsertRowid
         });
     }
 );
@@ -1636,24 +1390,18 @@ app.get(
     "/api/reports/:id",
     auth,
     (req, res) => {
-
+        // LOG ACCOUNT CANNOT VIEW REPORTS
         if (
-            isAlpha(
-                req.session.user
-            )
+            req.session.user.username ===
+            "log"
         ) {
-            return res.status(403).json({
-                error:
-                    "ALPHA_LOGS_ONLY"
-            });
+            return res.sendStatus(403);
         }
 
         const report =
             db.prepare(
                 "SELECT * FROM reports WHERE id = ?"
-            ).get(
-                req.params.id
-            );
+            ).get(req.params.id);
 
         if (
             !report ||
@@ -1665,9 +1413,7 @@ app.get(
                 report.file
             )
         ) {
-            return res.sendStatus(
-                404
-            );
+            return res.sendStatus(404);
         }
 
         audit(
@@ -1690,14 +1436,13 @@ app.get(
 
 // =====================================================
 // ALPHA LOGS
-// ONLY username=log + rank=ALPHA
+// ONLY log ACCOUNT
 // =====================================================
 
 app.get(
     "/api/command/audit",
     alpha,
     (req, res) => {
-
         const logs =
             db.prepare(`
                 SELECT
@@ -1710,7 +1455,7 @@ app.get(
                     created_at
                 FROM audit
                 ORDER BY id DESC
-                LIMIT 500
+                LIMIT 1000
             `).all();
 
         res.json({
@@ -1721,16 +1466,14 @@ app.get(
 );
 
 // =====================================================
-// ADMIN LOG ENDPOINT
-// REMOVED FROM NORMAL ADMIN
-// ONLY ALPHA
+// OLD COMMAND AUDIT
+// ONLY CODE ALPHA
 // =====================================================
 
 app.get(
     "/api/admin/logs",
-    alpha,
+    command,
     (req, res) => {
-
         const logs =
             db.prepare(`
                 SELECT
@@ -1743,7 +1486,7 @@ app.get(
                     created_at
                 FROM audit
                 ORDER BY id DESC
-                LIMIT 500
+                LIMIT 1000
             `).all();
 
         res.json({
@@ -1761,15 +1504,14 @@ app.get(
     "/api/sector",
     auth,
     (req, res) => {
-
+        // LOG ACCOUNT DOES NOT GET SECTOR
         if (
-            isAlpha(
-                req.session.user
-            )
+            req.session.user.username ===
+            "log"
         ) {
             return res.status(403).json({
                 error:
-                    "ALPHA_LOGS_ONLY"
+                    "ALPHA_LOG_ONLY"
             });
         }
 
@@ -1784,61 +1526,26 @@ app.get(
                     clearance,
                     created_at
                 FROM users
-                WHERE username != ?
+                WHERE username != 'log'
                 ORDER BY
                     CASE rank
                         WHEN "COMMAND OF CIA"
                             THEN 1
                         WHEN "AGENT OFFICER"
                             THEN 2
-                        WHEN "AGENT"
+                        WHEN "ALPHA"
                             THEN 3
                         ELSE 4
                     END,
                     id
-            `).all(
-                ALPHA_USERNAME
-            );
+            `).all();
 
         res.json(users);
     }
 );
 
 // =====================================================
-// ALPHA STATUS
-// Useful for index.html
-// =====================================================
-
-app.get(
-    "/api/alpha",
-    auth,
-    (req, res) => {
-
-        if (
-            !isAlpha(
-                req.session.user
-            )
-        ) {
-            return res.status(403).json({
-                error:
-                    "ALPHA_ONLY"
-            });
-        }
-
-        res.json({
-            ok: true,
-            username:
-                req.session.user
-                    .username,
-            rank:
-                req.session.user.rank,
-            logsOnly: true
-        });
-    }
-);
-
-// =====================================================
-// STATIC WEBSITE
+// STATIC
 // =====================================================
 
 app.use(
@@ -1857,7 +1564,6 @@ app.use(
 app.get(
     "/",
     (req, res) => {
-
         const indexPath =
             path.join(
                 __dirname,
@@ -1875,9 +1581,7 @@ app.get(
             );
         }
 
-        res.sendFile(
-            indexPath
-        );
+        res.sendFile(indexPath);
     }
 );
 
@@ -1886,29 +1590,13 @@ app.get(
 // =====================================================
 
 app.use(
-    (
-        err,
-        req,
-        res,
-        next
-    ) => {
-
+    (err, req, res, next) => {
         console.error(err);
 
         if (
             res.headersSent
         ) {
             return next(err);
-        }
-
-        if (
-            err.message ===
-            "ONLY_PDF_ALLOWED"
-        ) {
-            return res.status(400).json({
-                error:
-                    "ONLY_PDF_ALLOWED"
-            });
         }
 
         res.status(500).json({
@@ -1932,7 +1620,6 @@ app.listen(
     PORT,
     HOST,
     () => {
-
         console.log(
             `CIA RP running on http://${HOST}:${PORT}`
         );
@@ -1949,31 +1636,11 @@ app.listen(
         );
 
         console.log(
-            "----------------------------------------"
+            "ALPHA LOG ACCOUNT: log"
         );
 
         console.log(
-            "ALPHA LOG ACCOUNT"
-        );
-
-        console.log(
-            "Username: log"
-        );
-
-        console.log(
-            "Password: log_1"
-        );
-
-        console.log(
-            "Rank: ALPHA"
-        );
-
-        console.log(
-            "Access: LOGS ONLY"
-        );
-
-        console.log(
-            "----------------------------------------"
+            "ALPHA LOG PASSWORD: log_1"
         );
     }
 );
